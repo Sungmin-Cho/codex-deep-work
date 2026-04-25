@@ -1,0 +1,14 @@
+# agents/openai.yaml — Codex agent metadata (figma pattern).
+# B-α scope: per-agent tool whitelist NOT enforced by Codex.
+# Tool guidance lives in agents/*.md body as natural-language.
+
+agents:
+  - name: implement-slice-worker
+    display_name: "Implement Slice Worker"
+    default_prompt: "Execute the task per agents/implement-slice-worker.md exactly. Output only the structured response specified there."
+  - name: research-codebase-worker
+    display_name: "Research Codebase Worker"
+    default_prompt: "Execute the task per agents/research-codebase-worker.md exactly. Output only the structured response specified there."
+  - name: research-zerobase-worker
+    display_name: "Research Zerobase Worker"
+    default_prompt: "Execute the task per agents/research-zerobase-worker.md exactly. Output only the structured response specified there."
