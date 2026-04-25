@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
+source "$(dirname "$0")/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
 # utils.sh — Shared utilities for deep-work hook scripts
 # Source this file: source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
@@ -27,7 +28,7 @@ normalize_path() {
 find_project_root() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -d "$dir/.claude" ]]; then
+    if [[ -d "$dir/.codex" || -d "$dir/.claude" ]]; then
       echo "$dir"
       return 0
     fi

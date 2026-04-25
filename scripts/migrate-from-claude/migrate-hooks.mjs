@@ -178,6 +178,14 @@ export function applyStatePathReplace(src) {
     return `${replaced}  # state-glob-pattern (codex-migrate)`;
   }).join('\n');
 
+  // (2.5) Plan-Patch-38 (deep-review v6 6차 C1): shell `find_project_root` 의 marker dual-search.
+  // vendor utils.sh:30 의 `[[ -d "$dir/.claude" ]]` 같은 marker check 를 Codex `.codex` 우선
+  // + legacy `.claude` fallback 으로 변환. C1 의 sensor-trigger.js dual-marker 와 일관.
+  out = out.replace(/\[\[[ \t]+-d[ \t]+"(\$[A-Za-z_][A-Za-z0-9_]*|\$\{[A-Za-z_][A-Za-z0-9_]*\})\/\.claude"[ \t]+\]\]/g, (m, varRef) => {
+    touched = true;
+    return `[[ -d "${varRef}/.codex" || -d "${varRef}/.claude" ]]`;
+  });
+
   // (3) path assignment sites — local var="$PROJECT_ROOT/.claude/deep-work..."
   const assignmentRe = /(=\s*["']?[^"'\s]*?)\.claude\/(deep-work[/.\-][^"'\s>]+)/g;
   if (assignmentRe.test(out)) {
@@ -338,15 +346,22 @@ function isSourcedLibrary(srcFile) {
   return false;
 }
 
-// Plan-Patch-36 (deep-review v6 5차 C4): .js 파일 doc-level state path 변환.
-// vendor 의 sensor-trigger.js / phase-guard-core.js / verify-receipt-core.js 등이
-// `.claude/deep-work*` raw 경로 사용 — Codex 환경에서 sensor never triggered.
+// Plan-Patch-36 (deep-review v6 5차 C4) + Plan-Patch-38 (deep-review v6 6차 C1):
+// .js 파일 doc-level state path 변환 — marker 의도 와 state-path component 의도 구분.
 // (a) 슬래시-인접 literal: `.claude/deep-work*` → `.codex/deep-work*`
-// (b) path.join argument 안의 분리 component: `'.claude'` / `".claude"` → `'.codex'` / `".codex"`
-//     — sensor-trigger.js:15 의 path.join(dir, '.claude') 같은 케이스. fs API 호출 자체는 변환 X.
+// (b1) state-path component: `path.join(arg, '.claude', <more>)` → `path.join(arg, '.codex', <more>)`
+//     — `.claude` 가 path.join 의 중간 argument (state file 의 component) 인 케이스.
+// (b2) marker check (project-root 표식): `fs.existsSync(path.join(arg, '.claude'))` → dual-search
+//     — vendor sensor-trigger.js:14 의 marker 의도 보존. Codex 환경 (`.codex` 만 존재) 과
+//       legacy 환경 (`.claude` 만 존재) 둘 다 root 로 인식.
 function applyJsStatePathRefs(src) {
   let out = src.replace(/\.claude\/(deep-work[/.\-])/g, '.codex/$1');
-  out = out.replace(/(['"])\.claude\1/g, '$1.codex$1');
+  // (b1) state-path component (path.join 중간 argument)
+  out = out.replace(/path\.join\(([^()]+?),\s*(['"])\.claude\2,\s*/g, 'path.join($1, $2.codex$2, ');
+  // (b2) marker check — fs.existsSync(path.join(arg, '.claude')) → dual-search
+  //      Plan-Patch-38: marker 의도 보존 — Codex `.codex` 우선, legacy `.claude` fallback.
+  out = out.replace(/fs\.existsSync\(path\.join\(([^,()]+),\s*['"]\.claude['"]\)\)/g,
+    '(fs.existsSync(path.join($1, ".codex")) || fs.existsSync(path.join($1, ".claude")))');
   return out;
 }
 
@@ -360,8 +375,12 @@ function processHookScript(srcFile, dstFile, force) {
   // Plan-Patch-5: state path 함수 변환 — bash 만 (js 는 자체 fs API 사용)
   if (srcFile.endsWith('.sh')) {
     transformed = applyStatePathReplace(transformed);
-    // utils.sh source 자동 주입 — state 함수 또는 stdin parser 가 변환에서 사용됐으면 (sourced library 자체 제외).
-    if (!isSourcedLibrary(srcFile) &&
+    // Plan-Patch-39 (deep-review v6 6차 C2): UTILS_SOURCE_LINE inject 와 STDIN_PARSER inject 분리.
+    // 이전 v6 5차 의 isSourcedLibrary 가 둘 다 묶어 skip — vendor utils.sh 가 lib/utils.sh 를
+    // source 못 함 → write_state_file 호출 시 command not found.
+    // 분리: lib/utils.sh 자체만 self-source 회피, 그 외 모든 .sh (vendor utils.sh 포함) 는 inject.
+    const isLibUtilsSh = path.basename(srcFile) === 'utils.sh' && srcFile.includes('/lib/');
+    if (!isLibUtilsSh &&
         (transformed.includes('read_state_file') || transformed.includes('write_state_file') || transformed.includes('parse_hook_stdin'))) {
       if (!transformed.includes(UTILS_SOURCE_LINE)) {
         if (transformed.startsWith('#!')) {
@@ -372,12 +391,12 @@ function processHookScript(srcFile, dstFile, force) {
         }
       }
     }
-    // Plan-Patch-35 (C3): sourced library 는 stdin parser inject skip.
+    // Plan-Patch-35 (C3): sourced library 는 stdin parser inject skip (진입점만).
     if (!isSourcedLibrary(srcFile)) {
       transformed = injectStdinParser(transformed);
     }
   } else if (srcFile.endsWith('.js') || srcFile.endsWith('.mjs')) {
-    // Plan-Patch-36 (C4): .js / .mjs 의 .claude/deep-work* → .codex/deep-work*.
+    // Plan-Patch-36 (C4) + Plan-Patch-38 (C1): .js / .mjs state path + marker dual-search.
     transformed = applyJsStatePathRefs(transformed);
   }
 

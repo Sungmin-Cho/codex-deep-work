@@ -12,7 +12,7 @@ const path = require('node:path');
 function findProjectRoot(startDir) {
   let dir = startDir || process.cwd();
   while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, '.codex'))) return dir;
+    if ((fs.existsSync(path.join(dir, ".codex")) || fs.existsSync(path.join(dir, ".claude")))) return dir;
     dir = path.dirname(dir);
   }
   return null;
