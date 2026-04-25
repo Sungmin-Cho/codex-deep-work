@@ -1,5 +1,6 @@
 // codex-deep-work migration helpers — AST/regex transforms
 // <!-- migrated-by: codex-migrate v0.1 -->
+// Plan-Patch-11 (deep-review C7): MIGRATION_MARKERS 형식별 분리.
 
 import fs from 'node:fs';
 
@@ -14,20 +15,40 @@ export function loadRules() {
   return { tool: TOOL_MAPPING, path: PATH_MAPPING };
 }
 
-export const MIGRATION_MARKER = '<!-- migrated-by: codex-migrate v0.1 -->';
+// 형식별 marker. md = HTML comment, sh = # comment, js = // comment.
+export const MIGRATION_MARKERS = {
+  md: '<!-- migrated-by: codex-migrate v0.1 -->',
+  sh: '# migrated-by: codex-migrate v0.1',
+  js: '// migrated-by: codex-migrate v0.1',
+};
+
+// 하위 호환 — 기존 코드가 import 하는 단일 상수 (md form 으로 alias).
+export const MIGRATION_MARKER = MIGRATION_MARKERS.md;
 
 export function isMigrated(content) {
-  return content.includes(MIGRATION_MARKER);
+  return Object.values(MIGRATION_MARKERS).some(m => content.includes(m));
 }
 
-export function withMarker(content, prefix = '<!--') {
+// withMarker(content, ext) — ext 는 'md' | 'sh' | 'js'. 미지정 시 'md' default (하위 호환).
+// Plan-Patch-17 (deep-review v3-round C5): shebang 감지 시 marker 를 그 다음 라인에 삽입.
+// '.sh'/'.js' 의 interpreter line (`#!/usr/bin/env bash`) 이 깨지면 직접 실행 불가.
+export function withMarker(content, ext = 'md') {
   if (isMigrated(content)) return content;
-  if (prefix === '<!--') {
-    return MIGRATION_MARKER + '\n' + content;
+  const marker = MIGRATION_MARKERS[ext] ?? MIGRATION_MARKERS.md;
+  if (content.startsWith('#!')) {
+    const firstNl = content.indexOf('\n');
+    if (firstNl < 0) return content + '\n' + marker + '\n';
+    return content.slice(0, firstNl + 1) + marker + '\n' + content.slice(firstNl + 1);
   }
-  // shell/js style comment
-  const commentLine = prefix === '#' ? `# migrated-by: codex-migrate v0.1` : `// migrated-by: codex-migrate v0.1`;
-  return commentLine + '\n' + content;
+  return marker + '\n' + content;
+}
+
+// 파일 확장자 → marker 형식 도우미. caller 가 path.extname() 결과를 넘기면 알맞게 분기.
+export function markerExtForPath(p) {
+  if (p.endsWith('.md')) return 'md';
+  if (p.endsWith('.sh') || p.endsWith('.bash')) return 'sh';
+  if (p.endsWith('.js') || p.endsWith('.mjs') || p.endsWith('.cjs') || p.endsWith('.ts')) return 'js';
+  return 'md';  // unknown — md 형식이 가장 안전 (HTML comment 는 대부분 컨텍스트에서 무해).
 }
 
 // Phase B 에서 추가 구현될 함수들의 stub
