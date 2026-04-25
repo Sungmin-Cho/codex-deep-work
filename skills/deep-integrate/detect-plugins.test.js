@@ -1,4 +1,4 @@
-<!-- migrated-by: codex-migrate v0.1 -->
+// migrated-by: codex-migrate v0.1
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');

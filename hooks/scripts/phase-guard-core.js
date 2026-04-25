@@ -680,7 +680,7 @@ if (require.main === module) {
       process.stderr.write(`INTERNAL_ERROR: ${err.message}\n${err.stack || ''}\n`);
       process.stdout.write(JSON.stringify({
         decision: 'block',
-        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. .claude/deep-work-guard-errors.log 를 확인하세요.'
+        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. .codex/deep-work-guard-errors.log 를 확인하세요.'
       }));
       process.exit(3);
     }

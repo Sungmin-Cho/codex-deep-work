@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
 # --- begin codex-hook-stdin-parser (auto-injected) ---
 STDIN_JSON=$(cat)
@@ -16,7 +17,6 @@ export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
 export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
 # --- end codex-hook-stdin-parser ---
 # state-path migrated by codex-migrate v0.1
-#!/usr/bin/env bash
 # phase-transition.sh — PostToolUse hook: phase 전환 감지 → 조건 checklist injection
 #
 # state 파일의 current_phase가 변경되면 worktree_path, team_mode 등

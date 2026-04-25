@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
 # --- begin codex-hook-stdin-parser (auto-injected) ---
 STDIN_JSON=$(cat)
@@ -16,7 +17,6 @@ export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
 export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
 # --- end codex-hook-stdin-parser ---
 # state-path migrated by codex-migrate v0.1
-#!/usr/bin/env bash
 # notify.sh — 멀티채널 알림 디스패처
 # 사용법: bash notify.sh <state_file> <phase> <status> <message>
 # 예시:   bash notify.sh .codex/deep-work.s-a3f7b2c1.md research completed "✅ Research 완료"

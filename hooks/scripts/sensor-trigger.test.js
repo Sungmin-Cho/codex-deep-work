@@ -1,5 +1,5 @@
-// migrated-by: codex-migrate v0.1
 #!/usr/bin/env node
+// migrated-by: codex-migrate v0.1
 // sensor-trigger.test.js — Tests for sensor-trigger.js PostToolUse hook
 // Uses node:test + node:assert/strict
 

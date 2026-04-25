@@ -136,6 +136,27 @@ else
   echo "WARN: no scan directories present (partial migration?)"
 fi
 
+echo "=== verify-migration: 4.5 hooks/scripts/*.sh syntax (Plan-Patch-34, deep-review v6 5차 C1+C2) ==="
+# Plan-Patch-34: vendor 변환된 hooks/scripts/*.sh 가 multi-line over-match 정규식으로 broken 됐던 결함의
+# 회귀 차단. 모든 .sh 파일에 `bash -n` syntax check.
+SH_SYNTAX_FAIL=()
+for sh_file in "$PROJECT_ROOT/hooks/scripts"/*.sh; do
+  [ -f "$sh_file" ] || continue
+  if ! bash -n "$sh_file" 2>/dev/null; then
+    SH_SYNTAX_FAIL+=("$sh_file")
+  fi
+done
+if [ ${#SH_SYNTAX_FAIL[@]} -gt 0 ]; then
+  echo "FAIL: hooks/scripts/*.sh syntax errors (Plan-Patch-34 root cause):"
+  for f in "${SH_SYNTAX_FAIL[@]}"; do
+    echo "  $f"
+    bash -n "$f" 2>&1 | head -2 | sed 's/^/    /'
+  done
+  EXIT=1
+else
+  echo "PASS: all hooks/scripts/*.sh bash -n syntactically valid"
+fi
+
 echo "=== verify-migration: 5. hook stdin parser regression (C-A1 + Plan-Patch-20, deep-review v3-round C4) ==="
 PARSER_OK=true
 UTILS_SH="$PROJECT_ROOT/hooks/scripts/lib/utils.sh"

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
 # --- begin codex-hook-stdin-parser (auto-injected) ---
 STDIN_JSON=$(cat)
@@ -16,7 +17,6 @@ export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
 export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
 # --- end codex-hook-stdin-parser ---
 # state-path migrated by codex-migrate v0.1
-#!/usr/bin/env bash
 # update-check.sh — periodic version check for deep-work plugin (git-based)
 #
 # Output (one line, or nothing):

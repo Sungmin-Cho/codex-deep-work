@@ -1,4 +1,4 @@
-<!-- migrated-by: codex-migrate v0.1 -->
+// migrated-by: codex-migrate v0.1
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -83,14 +83,14 @@ describe('gather-signals.sh', () => {
     fs.writeFileSync(path.join(projectRoot, '.deep-docs', 'last-scan.json'), JSON.stringify({
       scanned_at: '2026-04-16T04:49:52Z',
       documents: [
-        { path: 'AGENTS.md', issues: [{ severity: 'low' }] },
+        { path: 'CLAUDE.md', issues: [{ severity: 'low' }] },
         { path: 'README.md', issues: [] },
       ],
     }));
 
     const env = run();
     assert.equal(env.artifacts['deep-docs'].last_scanned_at, '2026-04-16T04:49:52Z');
-    assert.equal(env.artifacts['deep-docs'].issues_summary['AGENTS.md'], 1);
+    assert.equal(env.artifacts['deep-docs'].issues_summary['CLAUDE.md'], 1);
     assert.equal(env.artifacts['deep-docs'].issues_summary['README.md'], 0);
   });
 

@@ -1,9 +1,9 @@
+#!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
 # TODO(Phase-C): pre-existing $(cat) at lines 25 — manual stdin migration required.
 # Auto-injection skipped to avoid stdin double-consumption (deep-review C3).
 source "$(dirname "$0")/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
-#!/usr/bin/env bash
 # file-tracker.sh — PostToolUse hook: implement 단계 파일 변경 자동 추적 + receipt 수집
 # v4.0: Bash 도구 지원, active slice에 변경 매핑, receipt JSON 업데이트
 # Exit codes:
@@ -33,7 +33,7 @@ mkdir -p "$(dirname "$_HOOK_INPUT_CACHE")" 2>/dev/null
 _HOOK_INPUT_TMP="${_HOOK_INPUT_CACHE}.tmp.$$"
 # Atomic write: truncate+write is non-atomic and a concurrent reader could
 # see a partial JSON. Write to tmp and rename.
-if write_state_file "deep-work-guard-errors.log" "$(printf '%s' "$TOOL_INPUT" > "$_HOOK_INPUT_TMP" 2>/dev/null; then
+if printf '%s' "$TOOL_INPUT" > "$_HOOK_INPUT_TMP" 2>/dev/null; then
   mv "$_HOOK_INPUT_TMP" "$_HOOK_INPUT_CACHE" 2>/dev/null || rm -f "$_HOOK_INPUT_TMP" 2>/dev/null
 fi
 
@@ -313,7 +313,7 @@ if [[ "$TOOL_NAME" != "Bash" && -n "${FILE_PATH:-}" ]]; then
           }
           fs.writeFileSync(f, t);
         } catch(_) { /* best-effort: never block PostToolUse */ }
-      ' "$STATE_FILE" 2>)" || true
+      ' "$STATE_FILE" 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
       _release_lock "$_STATE_LOCK"
     fi
     # On lock timeout, skip the flip for this invocation; the next marker

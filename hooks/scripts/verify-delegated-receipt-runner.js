@@ -10,7 +10,7 @@ const { verifyReceipts, parsePlanMd, parseStateFile } =
   require(path.join(scriptDir, 'verify-receipt-core.js'));
 
 // N-R2: state file is YAML frontmatter in a Markdown file
-// (.claude/deep-work.{SESSION_ID}.md), NOT JSON. parseStateFile extracts
+// (.codex/deep-work.{SESSION_ID}.md), NOT JSON. parseStateFile extracts
 // just the fields we need (tdd_mode).
 const state = parseStateFile(stateFile);
 const plan = parsePlanMd(planMdPath);

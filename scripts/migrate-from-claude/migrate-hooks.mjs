@@ -99,64 +99,70 @@ export function applyStatePathReplace(src) {
   let out = src;
   let touched = false;
 
+  // Plan-Patch-34 (deep-review v6 5차 C1+C2 root cause): newline 안 cross.
+  // 이전 v7 의 `\s+`/`\s*` 가 newline 포함 → `(?:\s+\S+)*` 가 multi-line over-match
+  // (vendor utils.sh line 18 의 printf 가 line 260 의 redirect 까지 8214 chars 흡수 → broken 출력).
+  // `[ \t]` 로 single-line 매칭 강제. line-leading 정규식의 `(^\s+)` 만 예외.
+
   // (1) write sites — > → write_state_file (overwrite), >> → write_state_file_append (Plan-Patch-31).
-  out = out.replace(new RegExp(`(echo\\s+(?:"[^"]*"|'[^']*'|\\S+))\\s*(>>?)\\s*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, echoCmd, op, rel) => {
+  out = out.replace(new RegExp(`(echo[ \\t]+(?:"[^"]*"|'[^']*'|\\S+))[ \\t]*(>>?)[ \\t]*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, echoCmd, op, rel) => {
     touched = true;
-    const contentMatch = echoCmd.match(/^echo\s+(.+)$/);
+    const contentMatch = echoCmd.match(/^echo[ \t]+(.+)$/);
     const content = contentMatch ? contentMatch[1] : '""';
     const fn = op === '>>' ? 'write_state_file_append' : 'write_state_file';
     return `${fn} "${rel}" ${content}`;
   });
   // printf 형식 redirect — > / >> 둘 다 처리 (Plan-Patch-31).
-  out = out.replace(new RegExp(`(printf\\s+(?:"[^"]*"|'[^']*'|\\S+)(?:\\s+\\S+)*)\\s*(>>?)\\s*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, printfCmd, op, rel) => {
+  // Plan-Patch-34: `[ \t]+` 로 single-line, `(?:[ \t]+\S+)*` greedy 가 newline 안 cross.
+  out = out.replace(new RegExp(`(printf[ \\t]+(?:"[^"]*"|'[^']*'|\\S+)(?:[ \\t]+\\S+)*)[ \\t]*(>>?)[ \\t]*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, printfCmd, op, rel) => {
     touched = true;
     const fn = op === '>>' ? 'write_state_file_append' : 'write_state_file';
     return `${fn} "${rel}" "$(${printfCmd})"`;
   });
   // tee — 항상 write_state_file (overwrite).
-  out = out.replace(new RegExp(`\\|\\s*tee\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
+  out = out.replace(new RegExp(`\\|[ \\t]*tee[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
     touched = true;
     return `| { content=$(cat); write_state_file "${rel}" "$content"; printf '%s' "$content"; }`;
   });
-  // Plan-Patch-23 + Plan-Patch-31 (deep-review v6 4차 C3): stderr fd-redirect.
-  out = out.replace(new RegExp(`(\\s|^)2(>>?)\\s*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, sp, op, rel) => {
+  // Plan-Patch-23 + Plan-Patch-31 + Plan-Patch-34: stderr fd-redirect.
+  out = out.replace(new RegExp(`([ \\t]|^)2(>>?)[ \\t]*["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, sp, op, rel) => {
     touched = true;
     const fn = op === '>>' ? 'write_state_file_append' : 'write_state_file';
     return `${sp}2> >(while IFS= read -r line; do ${fn} "${rel}" "$line"; done)`;
   });
-  // Plan-Patch-23 + Plan-Patch-31: line-leading append redirect — >> = append.
-  out = out.replace(new RegExp(`(^\\s+)(>>?)\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'gm'), (m, lead, op, rel) => {
+  // Plan-Patch-23 + Plan-Patch-31 + Plan-Patch-34: line-leading append redirect — `^\s+` 는 line-anchor 의도라 유지.
+  out = out.replace(new RegExp(`(^[ \\t]+)(>>?)[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'gm'), (m, lead, op, rel) => {
     touched = true;
     const fn = op === '>>' ? 'write_state_file_append' : 'write_state_file';
     return `${lead}> >(while IFS= read -r line; do ${fn} "${rel}" "$line"; done)`;
   });
-  // mv/cp — destination 이 state path 인 케이스. Plan-Patch-23: optional prefix 허용.
-  out = out.replace(new RegExp(`\\b(mv|cp)\\s+(\\S+|"[^"]+"|'[^']+')\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, cmd, src1, rel) => {
+  // mv/cp — destination 이 state path 인 케이스. Plan-Patch-34: single-line 강제.
+  out = out.replace(new RegExp(`\\b(mv|cp)[ \\t]+(\\S+|"[^"]+"|'[^']+')[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, cmd, src1, rel) => {
     touched = true;
     return `${cmd} ${src1} "$PROJECT_ROOT/.codex/${rel}"`;
   });
 
-  // (2) read sites — cat / jq / grep / source / [[ -f|-r|-e → read_state_file
-  out = out.replace(new RegExp(`\\bcat\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
+  // (2) read sites — cat / jq / grep / source / [[ -f|-r|-e → read_state_file. Plan-Patch-34: single-line 강제.
+  out = out.replace(new RegExp(`\\bcat[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
     touched = true;
     return `read_state_file "${rel}"`;
   });
-  out = out.replace(new RegExp(`\\b(jq|grep)\\b([^|]*?)\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, cmd, args, rel) => {
+  out = out.replace(new RegExp(`\\b(jq|grep)\\b([^|\\n]*?)[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, cmd, args, rel) => {
     touched = true;
     return `read_state_file "${rel}" | ${cmd}${args}`;
   });
-  out = out.replace(new RegExp(`\\bsource\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
+  out = out.replace(new RegExp(`\\bsource[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
     touched = true;
     return `source <(read_state_file "${rel}")`;
   });
-  out = out.replace(new RegExp(`\\[\\[\\s+-([fer])\\s+["']?${STATE_REL_WITH_PREFIX}["']?\\s+\\]\\]`, 'g'), (m, flag, rel) => {
+  out = out.replace(new RegExp(`\\[\\[[ \\t]+-([fer])[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?[ \\t]+\\]\\]`, 'g'), (m, flag, rel) => {
     touched = true;
     return `[[ -n "$(read_state_file \\"${rel}\\" 2>/dev/null)" ]]`;
   });
   // Plan-Patch-23: vendor 의 함수 호출 (read_frontmatter_field 등) — read site 로 분류.
   const VENDOR_READ_FUNCS = ['read_frontmatter_field', 'read_session_state', 'read_pointer'];
   for (const fn of VENDOR_READ_FUNCS) {
-    out = out.replace(new RegExp(`\\b${fn}\\s+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
+    out = out.replace(new RegExp(`\\b${fn}[ \\t]+["']?${STATE_REL_WITH_PREFIX}["']?`, 'g'), (m, rel) => {
       touched = true;
       return `${fn} <(read_state_file "${rel}")`;
     });
@@ -200,13 +206,24 @@ export function applyStatePathReplace(src) {
     if (remainingPattern.test(l)) ambiguousLines.push(i + 1);
     remainingPattern.lastIndex = 0;
   });
+  // Plan-Patch-37 (deep-review v6 5차 보강): prepend 시 shebang 보존.
+  // 이전엔 raw prepend 라 vendor utils.sh 의 `#!/usr/bin/env bash` 가 line 20+ 로 밀림.
+  const prependPreservingShebang = (src, lineToPrepend) => {
+    if (src.startsWith('#!')) {
+      const firstNl = src.indexOf('\n');
+      if (firstNl < 0) return src + '\n' + lineToPrepend + '\n';
+      return src.slice(0, firstNl + 1) + lineToPrepend + '\n' + src.slice(firstNl + 1);
+    }
+    return lineToPrepend + '\n' + src;
+  };
+
   if (ambiguousLines.length > 0) {
     touched = true;
-    out = `# TODO(Phase-C): ambiguous .claude/deep-work* path access at vendor lines ${ambiguousLines.join(',')} — manual review needed (deep-review v3-round C1).\n` + out;
+    out = prependPreservingShebang(out, `# TODO(Phase-C): ambiguous .claude/deep-work* path access at vendor lines ${ambiguousLines.join(',')} — manual review needed (deep-review v3-round C1).`);
   }
 
   if (touched) {
-    out = `${STATE_TRANSFORM_MARKER}\n` + out;
+    out = prependPreservingShebang(out, STATE_TRANSFORM_MARKER);
   }
   return out;
 }
@@ -311,6 +328,28 @@ export function generateHooksTemplate(cc) {
 const TARGET_EXTS_HOOK_SCRIPTS = new Set(['.sh', '.js', '.mjs']);
 const UTILS_SOURCE_LINE = 'source "$(dirname "$0")/lib/utils.sh"';
 
+// Plan-Patch-35 (deep-review v6 5차 C3): sourced library 검출.
+// vendor utils.sh 같은 library 가 source 됐을 때 STDIN_JSON=$(cat) 가 module-level 에 있으면
+// stdin 즉시 소진 → 진입점 hook 의 자체 stdin parsing 깨짐. 진입점만 inject.
+function isSourcedLibrary(srcFile) {
+  const base = path.basename(srcFile);
+  if (base === 'utils.sh') return true;
+  if (srcFile.includes('/lib/')) return true;
+  return false;
+}
+
+// Plan-Patch-36 (deep-review v6 5차 C4): .js 파일 doc-level state path 변환.
+// vendor 의 sensor-trigger.js / phase-guard-core.js / verify-receipt-core.js 등이
+// `.claude/deep-work*` raw 경로 사용 — Codex 환경에서 sensor never triggered.
+// (a) 슬래시-인접 literal: `.claude/deep-work*` → `.codex/deep-work*`
+// (b) path.join argument 안의 분리 component: `'.claude'` / `".claude"` → `'.codex'` / `".codex"`
+//     — sensor-trigger.js:15 의 path.join(dir, '.claude') 같은 케이스. fs API 호출 자체는 변환 X.
+function applyJsStatePathRefs(src) {
+  let out = src.replace(/\.claude\/(deep-work[/.\-])/g, '.codex/$1');
+  out = out.replace(/(['"])\.claude\1/g, '$1.codex$1');
+  return out;
+}
+
 function processHookScript(srcFile, dstFile, force) {
   const content = fs.readFileSync(srcFile, 'utf8');
   if (!force && fs.existsSync(dstFile) && isMigrated(fs.readFileSync(dstFile, 'utf8'))) {
@@ -321,8 +360,9 @@ function processHookScript(srcFile, dstFile, force) {
   // Plan-Patch-5: state path 함수 변환 — bash 만 (js 는 자체 fs API 사용)
   if (srcFile.endsWith('.sh')) {
     transformed = applyStatePathReplace(transformed);
-    // utils.sh source 자동 주입 — state 함수 또는 stdin parser 가 변환에서 사용됐으면
-    if (transformed.includes('read_state_file') || transformed.includes('write_state_file') || transformed.includes('parse_hook_stdin')) {
+    // utils.sh source 자동 주입 — state 함수 또는 stdin parser 가 변환에서 사용됐으면 (sourced library 자체 제외).
+    if (!isSourcedLibrary(srcFile) &&
+        (transformed.includes('read_state_file') || transformed.includes('write_state_file') || transformed.includes('parse_hook_stdin'))) {
       if (!transformed.includes(UTILS_SOURCE_LINE)) {
         if (transformed.startsWith('#!')) {
           const firstNl = transformed.indexOf('\n');
@@ -332,8 +372,13 @@ function processHookScript(srcFile, dstFile, force) {
         }
       }
     }
-    // stdin parser 안전 주입 (Plan-Patch-7)
-    transformed = injectStdinParser(transformed);
+    // Plan-Patch-35 (C3): sourced library 는 stdin parser inject skip.
+    if (!isSourcedLibrary(srcFile)) {
+      transformed = injectStdinParser(transformed);
+    }
+  } else if (srcFile.endsWith('.js') || srcFile.endsWith('.mjs')) {
+    // Plan-Patch-36 (C4): .js / .mjs 의 .claude/deep-work* → .codex/deep-work*.
+    transformed = applyJsStatePathRefs(transformed);
   }
 
   // marker — withMarker(content, ext) 사용 (Plan-Patch-11)

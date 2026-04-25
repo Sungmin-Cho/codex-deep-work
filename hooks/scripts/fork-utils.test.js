@@ -1,5 +1,5 @@
-// migrated-by: codex-migrate v0.1
 #!/usr/bin/env node
+// migrated-by: codex-migrate v0.1
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync } = require('child_process');

@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isMigrated, MIGRATION_MARKER } from './lib/transformers.mjs';
+import { isMigrated, MIGRATION_MARKER, withMarker, markerExtForPath } from './lib/transformers.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -95,9 +95,9 @@ function processFixtureFile(srcFile, dstFile, force) {
     return { skipped: true };
   }
   let transformed = convertEnvFixtureToStdin(content);
-  if (!isMigrated(transformed)) {
-    transformed = `// migrated-by: codex-migrate v0.1\n` + transformed;
-  }
+  // Critical-C5 (deep-review v6 5차): shebang 보존 — withMarker 사용으로 교체.
+  // 이전 직접 prepend 는 #!/usr/bin/env node 가 line 2 로 밀려 node --test SyntaxError.
+  transformed = withMarker(transformed, markerExtForPath(srcFile));
   fs.mkdirSync(path.dirname(dstFile), { recursive: true });
   fs.writeFileSync(dstFile, transformed);
   return { written: true };

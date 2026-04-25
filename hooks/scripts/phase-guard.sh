@@ -1,8 +1,8 @@
+#!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
 # TODO(Phase-C): pre-existing $(cat) at lines 104,546 — manual stdin migration required.
 # Auto-injection skipped to avoid stdin double-consumption (deep-review C3).
 # state-path migrated by codex-migrate v0.1
-#!/usr/bin/env bash
 # phase-guard.sh — PreToolUse hook for deep-work v4.0 Evidence-Driven Protocol
 #
 # Bash fast path handles simple checks (~50ms).

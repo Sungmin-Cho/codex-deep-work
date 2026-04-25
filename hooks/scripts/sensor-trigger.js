@@ -12,7 +12,7 @@ const path = require('node:path');
 function findProjectRoot(startDir) {
   let dir = startDir || process.cwd();
   while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, '.claude'))) return dir;
+    if (fs.existsSync(path.join(dir, '.codex'))) return dir;
     dir = path.dirname(dir);
   }
   return null;
@@ -42,7 +42,7 @@ function releaseLock(lockPath) {
 
 function logError(root, msg) {
   try {
-    const logPath = path.join(root, '.claude', 'deep-work-guard-errors.log');
+    const logPath = path.join(root, '.codex', 'deep-work-guard-errors.log');
     fs.appendFileSync(logPath, `${new Date().toISOString()} sensor-trigger: ${msg}\n`);
   } catch (_) { /* swallow — logging must never crash */ }
 }
@@ -56,7 +56,7 @@ function main() {
     root = findProjectRoot();
     if (!root) return;
 
-    const stateFile = path.join(root, '.claude', `deep-work.${sessionId}.md`);
+    const stateFile = path.join(root, '.codex', `deep-work.${sessionId}.md`);
     if (!fs.existsSync(stateFile)) return;
 
     // Serialize read-modify-write with file-tracker.sh's state updates.

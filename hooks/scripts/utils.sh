@@ -1,23 +1,6 @@
-# migrated-by: codex-migrate v0.1
-# --- begin codex-hook-stdin-parser (auto-injected) ---
-STDIN_JSON=$(cat)
-TOOL_NAME=$(printf '%s' "$STDIN_JSON" | jq -r '.tool_name // empty')
-TOOL_INPUT=$(printf '%s' "$STDIN_JSON" | jq -c '.tool_input // {}')
-HOOK_EVENT=$(printf '%s' "$STDIN_JSON" | jq -r '.hook_event_name // empty')
-SESSION_ID=$(printf '%s' "$STDIN_JSON" | jq -r '.session_id // empty')
-TURN_ID=$(printf '%s' "$STDIN_JSON" | jq -r '.turn_id // empty')
-MODEL=$(printf '%s' "$STDIN_JSON" | jq -r '.model // empty')
-export TOOL_NAME TOOL_INPUT HOOK_EVENT SESSION_ID TURN_ID MODEL
-# Backward-compat env aliases — vendor extract-cc-hardcodes.sh 의 ENV_VARS 5종 모두.
-export CLAUDE_TOOL_USE_TOOL_NAME="$TOOL_NAME"
-export CLAUDE_TOOL_NAME="$TOOL_NAME"
-export CLAUDE_TOOL_USE_TOOL_INPUT="$TOOL_INPUT"
-export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
-export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
-# --- end codex-hook-stdin-parser ---
-source "$(dirname "$0")/lib/utils.sh"
-# state-path migrated by codex-migrate v0.1
 #!/usr/bin/env bash
+# migrated-by: codex-migrate v0.1
+# state-path migrated by codex-migrate v0.1
 # utils.sh — Shared utilities for deep-work hook scripts
 # Source this file: source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
@@ -34,7 +17,7 @@ normalize_path() {
   if [[ "$p" == *"/.."* ]]; then
     p=$(node -e "console.log(require('path').resolve(process.argv[1]))" "$p" 2>/dev/null || echo "$p")
   fi
-  write_state_file "deep-work-current-session" "$(printf '%s' "$p"
+  printf '%s' "$p"
 }
 
 # ─── Project root detection ──────────────────────────────────
@@ -276,7 +259,7 @@ init_deep_work_state() {
 write_session_pointer() {
   local session_id="$1"
   mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null
-  printf '%s' "$session_id")"
+  write_state_file "deep-work-current-session" "$(printf '%s' "$session_id")"
 }
 
 read_session_pointer() {

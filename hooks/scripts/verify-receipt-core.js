@@ -381,7 +381,7 @@ function checkItem8(receipts) {
 /**
  * Read a deep-work state file and extract needed fields from YAML frontmatter.
  *
- * State file format: `.claude/deep-work.{SESSION_ID}.md`
+ * State file format: `.codex/deep-work.{SESSION_ID}.md`
  *   ---
  *   work_dir: ...
  *   tdd_mode: "strict"
