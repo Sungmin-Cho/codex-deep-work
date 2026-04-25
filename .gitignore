@@ -17,8 +17,10 @@
 deep-work-workflow-workspace/
 TODOS.md
 
-# Vendor copy (Phase A reference, .gitignored)
+# Vendor copy (Phase A reference, .gitignored — manifest 두 파일만 명시 트래킹)
 vendor/
+!vendor/.cc-source-commit
+!vendor/README.md
 
 # OS / editor
 .DS_Store

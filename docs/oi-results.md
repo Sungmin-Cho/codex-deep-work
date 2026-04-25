@@ -321,6 +321,49 @@ spec 의 다음 위치 정정:
 
 ---
 
+## OI-11: A' First-Run Install Pattern 구현 (Critical, NEW) — DEFERRED to Phase B/C
+
+### 발견 경위
+
+OI-1/OI-4 검증 중 plugin 의 hooks.json 자동 인식 부재 + Codex install-time hook 메커니즘 부재로 신설.
+
+### 구현 옵션
+
+- **(A) Phase B step 9** (`migrate-skills.mjs`) — 모든 phase skill 본문에 first-run check 자동 prepend
+- **(B) Phase C step 15** — `deep-work-orchestrator` skill 한 곳에만 수동 통합 (entry point 단일 책임)
+- **권장: (B)** — install 책임을 단일 entry point 에 집중, 다른 skill 들은 hook 존재 가정
+
+### 구현 명세 (Phase B/C 시점에 본 섹션 참조)
+
+`deep-work-orchestrator` skill 본문 첫 단계에 prepend:
+
+```markdown
+## First-Run Hook Install Check (OI-11)
+
+Before proceeding, check if `<repo>/.codex/hooks.json` exists.
+
+If absent:
+1. Display the contents of `<plugin-cache>/hooks-template.json` to the user
+2. Ask: "deep-work plugin uses Codex hooks for TDD enforcement and receipt validation. Install hooks into <repo>/.codex/hooks.json now?"
+3. On Y → merge install (preserving any existing hooks)
+4. On N → set `.codex/deep-work/no-hook-mode` flag → degrade to natural-language fallback (post-hoc receipt validation)
+5. Record decision in `assumptions.json.first_run_install_completed`
+```
+
+### Phase B 영향
+
+- `migrate-skills.mjs` 의 deep-work-orchestrator 변환 시 install prompt 코드 prepend 룰 추가
+- `assumptions.json` 에 `first_run_install_completed: bool` + `hooks_install_decision: yes|no|deferred` 필드 추가
+- plugin scaffold 에 `hooks-template.json` 동봉 (Phase B step 11 hooks.json 생성과 동시)
+
+### Phase C 영향 (Branch B 권장 시)
+
+- Phase C step 15 (사람 검토) 시점에 deep-work-orchestrator 의 first-run 로직 직접 작성
+- 다른 phase skill 은 변경 없음
+- A' 거절 시 fallback: `.codex/deep-work/no-hook-mode` flag 검사 → 모든 hook-dependent 검증을 자연어 가이드로 대체
+
+---
+
 ## OI-8: per-agent tool 제약 재현 방법 (Medium) — **RESOLVED**
 
 ### 조사 결과

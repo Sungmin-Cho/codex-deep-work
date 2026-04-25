@@ -14,12 +14,12 @@
   "interface": {
     "displayName": "Deep Work",
     "shortDescription": "Evidence-Driven Development Protocol",
-    "longDescription": "Codex CLI plugin that drives a 5-phase auto-flow (Brainstorm → Research → Plan → Implement → Test) with TDD enforcement and receipt validation. Requires the multi_agent feature flag for parallel subagent dispatch — set [features].multi_agent = true in ~/.codex/config.toml.",
+    "longDescription": "Codex CLI plugin that drives a 5-phase auto-flow (Brainstorm → Research → Plan → Implement → Test) with TDD enforcement, receipt validation, and parallel subagent dispatch via multi_agent. Requires features.multi_agent = true AND features.codex_hooks = true in ~/.codex/config.toml. First run will prompt to install hooks into <repo>/.codex/hooks.json (A' First-Run Install Pattern, OI-11).",
     "developerName": "sungmin",
     "category": "Coding",
     "capabilities": ["Interactive", "Read", "Write"],
     "defaultPrompt": [
-      "/deep-work \"task description\" 로 자동 워크플로우 시작 (multi_agent feature flag 필요)"
+      "/deep-work \"task description\" 로 자동 워크플로우 시작 (multi_agent + codex_hooks feature flags 필요)"
     ]
   }
 }

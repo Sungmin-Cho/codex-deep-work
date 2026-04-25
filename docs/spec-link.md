@@ -7,7 +7,7 @@
 
 ## Phase A 완료 — Phase B 진입 가능 상태
 
-OI 9건 결과 (Critical 5 RESOLVED + Medium 4 RESOLVED/DEFERRED + OI-11 신규):
+OI 결과 — 10건 처리 (Critical 5 RESOLVED + Medium 3 RESOLVED + Medium 1 DEFERRED + OI-11 NEW DEFERRED):
 - 자세한 결과: `docs/oi-results.md`
 - 진입 차단 게이트: 모두 통과 (slot=6, state_path_replace 룰, verify_rule, B-α 정상)
 

@@ -2,10 +2,17 @@
   "version": "0.1.0",
   "comment": "경로 + 함수 API 변환 (C3-A1 + C-PA1 교정 — state 경로는 literal_replace 금지, 함수 API 만 사용).",
   "literal_replace": {
-    "comment": "non-state 리터럴만 (URL/이름/파일명). state 경로(.claude/deep-work/, .claude/.hook-tool-input.* 등) 는 절대 여기 추가 금지.",
+    "comment": "non-state 리터럴만 (URL/이름/파일명/plugin cache HOME 경로). state 경로(.claude/deep-work/, .claude/.hook-tool-input.* 등) 는 절대 여기 추가 금지.",
     "claude-deep-work":               "codex-deep-work",
     "claude-deep-suite":              "codex-deep-suite",
-    "CLAUDE.md":                      "AGENTS.md"
+    "CLAUDE.md":                      "AGENTS.md",
+    "~/.claude/plugins/cache":        "~/.codex/plugins/cache",
+    "$HOME/.claude/plugins/cache":    "$HOME/.codex/plugins/cache"
+  },
+  "plugin_root_replace": {
+    "comment": "OI-7 RESOLVED — Codex 공식 권장 git root 패턴. plugin cache 경로는 A' First-Run Install 후 사용자 repo .codex/ 로 복사된 뒤 동일 패턴 사용.",
+    "from": "${CLAUDE_PLUGIN_ROOT}",
+    "to": "$(git rev-parse --show-toplevel)/.codex/hooks/scripts"
   },
   "state_path_replace": {
     "comment": "C-PA1 교정: state 경로는 함수 API 호출 사이트로 분류 후 read/write 별도 변환. 직접 .codex/deep-work/ 치환 금지.",
@@ -32,7 +39,6 @@
     "verify_rule": "verify-migration.sh 가 다음을 fail 처리: (a) `.codex/deep-work/` raw filesystem access 가 wrapper 구현 (utils.sh) 또는 테스트 fixture 외에서 등장하면 fail. (b) `read_state_file`/`write_state_file` 호출 외부의 state 경로 직접 접근 0건 검증."
   },
   "deferred": {
-    "${CLAUDE_PLUGIN_ROOT}": "OI-7 — Codex 대체값 미확정. Phase A step 4 OI-7 해결 후 룰 추가.",
-    "~/.claude/plugins/cache": "OI-7 일부 — Codex 실경로 확정 후 별도 codemod"
+    "comment": "OI-7 모두 RESOLVED (Phase A) — deferred 항목 없음. 새 deferred 룰 발견 시 여기 추가."
   }
 }

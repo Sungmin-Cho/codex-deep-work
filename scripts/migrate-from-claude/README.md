@@ -9,13 +9,13 @@ Forked from `gemini-deep-suite/scripts/`. Adapted for Codex CLI under B-α scope
 | `extract-cc-hardcodes.sh` | Catalog `.claude/` literals + `CLAUDE_*` env vars | forked, ready |
 | `migrate-manifest.mjs` | plugin.json + package.json files | stub (Phase B) |
 | `migrate-paths.mjs` | `.claude/` → `read_state_file`/`write_state_file` codemod | stub (Phase B) |
-| `migrate-skills.mjs` | skill body tool mapping | forked, needs Codex rules |
+| `migrate-skills.mjs` | skill body tool mapping (lib JSON source-of-truth) | **stub (Phase B)** — Gemini fork 제거됨 (deep-review C-CodexFork) |
 | `migrate-commands.mjs` | commands/*.md tool mapping | stub (Phase B) |
 | `migrate-agents.mjs` | agents/*.md + Task → spawn_agent natural language | stub (Phase B) |
-| `migrate-hooks.mjs` | hooks.json + scripts (stdin parser injection) | forked, needs Codex rules |
+| `migrate-hooks.mjs` | hooks.json + scripts (stdin parser injection) | **stub (Phase B)** — Gemini fork 제거됨 (deep-review C-CodexFork) |
 | `migrate-fixtures.mjs` | test fixture stdin envelope (AST level) | stub (Phase B) |
 | `migrate-context-doc.mjs` | CLAUDE.md → AGENTS.md (Semantic losses auto-insert) | stub (Phase B) |
-| `count-tests.mjs` | Neutral test counter (Phase A baseline option C) | stub (Phase A end) |
+| `count-tests.mjs` | Neutral test counter (Phase D CI 비교 기준) | stub (Phase D) |
 | `verify-migration.sh` | Allowlist-based regression gate | stub (Phase B) |
 
 ## Rule sets (lib/)
