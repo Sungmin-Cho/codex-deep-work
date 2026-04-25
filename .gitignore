@@ -1,0 +1,25 @@
+# Runtime state — .codex/ 런타임 산출물
+.codex/deep-work/
+.codex/deep-work.*.md
+.codex/.hook-tool-input.*
+.codex/deep-work-current-session
+.codex/deep-work-sessions.json
+.codex/deep-work-sessions.lock
+.codex/deep-work-guard-errors.log
+.codex/deep-work-profile.yaml
+
+# Legacy CC 런타임 (마이그레이션 진행 중 환경)
+.claude/deep-work/
+.claude/deep-work.*.md
+.claude/.hook-tool-input.*
+
+# 작업 디렉토리
+deep-work-workflow-workspace/
+TODOS.md
+
+# Vendor copy (Phase A reference, .gitignored)
+vendor/
+
+# OS / editor
+.DS_Store
+*.swp

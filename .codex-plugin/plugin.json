@@ -1,0 +1,25 @@
+{
+  "name": "deep-work",
+  "version": "0.1.0",
+  "description": "Evidence-Driven Development Protocol — Codex CLI port of claude-deep-work v6.4.0 (B-α scope)",
+  "author": { "name": "sungmin" },
+  "repository": "https://github.com/Sungmin-Cho/codex-deep-work",
+  "license": "MIT",
+  "keywords": [
+    "workflow", "deep-work", "evidence-driven", "tdd", "auto-flow",
+    "slice", "receipt", "quality-gate", "structured-development",
+    "code-review", "session-lifecycle", "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Deep Work",
+    "shortDescription": "Evidence-Driven Development Protocol",
+    "longDescription": "Codex CLI plugin that drives a 5-phase auto-flow (Brainstorm → Research → Plan → Implement → Test) with TDD enforcement and receipt validation. Requires the multi_agent feature flag for parallel subagent dispatch — set [features].multi_agent = true in ~/.codex/config.toml.",
+    "developerName": "sungmin",
+    "category": "Coding",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "/deep-work \"task description\" 로 자동 워크플로우 시작 (multi_agent feature flag 필요)"
+    ]
+  }
+}
