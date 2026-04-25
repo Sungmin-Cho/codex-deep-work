@@ -1,0 +1,109 @@
+// migrate-skills.test.mjs — Task 3 TDD
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  transformSkillBody,
+  prependFirstRunInstall,
+} from './migrate-skills.mjs';
+
+describe('migrate-skills native_passthrough', () => {
+  it('keeps Read/Write/Edit/Bash unchanged', () => {
+    const src = `Use the Read tool to load the file. Then call Write to persist.`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.ok(out.includes('Read tool'));
+    assert.ok(out.includes('Write'));
+  });
+});
+
+describe('migrate-skills rename TaskCreate', () => {
+  it('replaces "Use the TaskCreate tool" with "Update the plan via update_plan"', () => {
+    const src = `Use the TaskCreate tool to add a task.`;
+    const out = transformSkillBody(src, 'deep-plan');
+    assert.ok(/update_plan/.test(out));
+    assert.ok(!/TaskCreate/.test(out));
+  });
+
+  it('replaces TaskCreate( call form with natural language', () => {
+    const src = `TaskCreate({ subject: "X", description: "Y" })`;
+    const out = transformSkillBody(src, 'deep-plan');
+    assert.ok(!/TaskCreate\(/.test(out));
+  });
+
+  it('also handles TaskUpdate, TaskList, TaskGet, TodoWrite', () => {
+    const src = `Use TaskUpdate, TaskList, TaskGet, TodoWrite separately.`;
+    const out = transformSkillBody(src, 'deep-implement');
+    for (const t of ['TaskUpdate', 'TaskList', 'TaskGet', 'TodoWrite']) {
+      assert.ok(!new RegExp(`\\b${t}\\b`).test(out), `${t} 잔존`);
+    }
+  });
+});
+
+describe('migrate-skills subagent.Task', () => {
+  it('converts single Task dispatch to spawn_agent natural language', () => {
+    const src = `Use the Task tool with subagent_type=research-codebase-worker, prompt="..."`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.ok(/spawn_agent/.test(out) || /worker agent/.test(out));
+    assert.ok(!/Task tool/.test(out));
+  });
+
+  it('converts parallel Task block to N-way spawn pattern', () => {
+    const src = `Single message with multiple Task calls (one per worker)`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.ok(!/Task calls/.test(out));
+    assert.ok(/spawn|wait|parallel/i.test(out));
+  });
+});
+
+describe('migrate-skills natural_language_only', () => {
+  it('converts Skill("name") to "the <name> skill"', () => {
+    const src = `Invoke Skill("deep-research") to start.`;
+    const out = transformSkillBody(src, 'deep-work-orchestrator');
+    assert.ok(/the deep-research skill/.test(out) || /the <deep-research> skill/.test(out));
+    assert.ok(!/Skill\(/.test(out));
+  });
+
+  it('converts AskUserQuestion structured to numbered prompt', () => {
+    const src = `Use AskUserQuestion({ questions: [{ header: "Mode", options: [{label:"A"},{label:"B"}] }] })`;
+    const out = transformSkillBody(src, 'deep-work-orchestrator');
+    assert.ok(!/AskUserQuestion\(/.test(out));
+    assert.ok(/numbered|1\)|숫자/i.test(out));
+  });
+
+  it('converts TeamCreate to natural language fallback', () => {
+    const src = `TeamCreate({ team_name: "research-3way" })`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.ok(!/TeamCreate\(/.test(out));
+    assert.ok(/main session memory|parallel workers/i.test(out));
+  });
+
+  it('converts SendMessage into two-pattern guidance', () => {
+    const src = `SendMessage(to=worker_id, body="result")`;
+    const out = transformSkillBody(src, 'deep-implement');
+    assert.ok(!/SendMessage\(/.test(out));
+  });
+});
+
+describe('migrate-skills OI-11 First-Run Install (Plan-Patch-2)', () => {
+  it('prepends first-run install check to deep-work-orchestrator', () => {
+    const src = `# deep-work-orchestrator\n\nStart the workflow.`;
+    const out = prependFirstRunInstall(src, 'deep-work-orchestrator');
+    assert.ok(/First-Run Hook Install Check/.test(out));
+    assert.ok(/\.codex\/hooks\.json/.test(out));
+  });
+
+  it('does NOT prepend first-run install to other skills', () => {
+    const src = `# deep-research\n\nResearch.`;
+    const out = prependFirstRunInstall(src, 'deep-research');
+    assert.ok(!/First-Run Hook Install Check/.test(out));
+    assert.equal(out, src);
+  });
+});
+
+describe('migrate-skills idempotency', () => {
+  it('is idempotent on the full transform pipeline', () => {
+    const src = `Use TaskCreate to plan. Then Skill("deep-implement").`;
+    const once = transformSkillBody(src, 'deep-plan');
+    const twice = transformSkillBody(once, 'deep-plan');
+    assert.equal(once, twice);
+  });
+});
