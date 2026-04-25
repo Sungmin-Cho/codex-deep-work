@@ -23,3 +23,11 @@ vendor/
 # OS / editor
 .DS_Store
 *.swp
+
+# deep-review
+.deep-review/config.yaml
+.deep-review/reports/
+.deep-review/responses/
+.deep-review/tmp/
+.deep-review/.pending-mutation.json
+.deep-review/.mutation.lock/
