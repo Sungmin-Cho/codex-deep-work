@@ -1,0 +1,24 @@
+---
+allowed-tools: Skill, Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion, TeamCreate, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
+---
+<!-- migrated-by: codex-migrate v0.1 -->
+
+# /deep-work
+
+Evidence-Driven Development Protocol — Brainstorm → Research → Plan → Implement → Test 자동 진행.
+
+the deep-work-orchestrator skill
+
+## ARGUMENTS / Flags
+
+### `--exec=<mode>` (v6.4.0)
+
+Implement 단계 실행 방식 override.
+
+| 값 | 동작 |
+|----|------|
+| `inline` | team_mode 무관하게 main session에서 inline 실행. 자동 heuristic 무시 |
+| `delegate` | spike/trivial 상황에서도 subagent 위임 강제 |
+| (미지정) | decide_execution_mode(state, args) heuristic 따름 (§5.5a) |
+
+값은 state의 `execution_override` 필드에 저장되며 resume 시에도 유지. CLI args 재지정 시 state 덮어씀.

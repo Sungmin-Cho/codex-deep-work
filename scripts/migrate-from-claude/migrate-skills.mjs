@@ -57,10 +57,15 @@ function applyToolMapping(src) {
 
   // 2. subagent.Task — parallel block 먼저 (single 매칭이 잠식 방지)
   out = out.replace(PARALLEL_TASK_PATTERN, PARALLEL_TASK_REPLACEMENT);
-  // single Task — frontmatter/body 자연어
+  // single Task — frontmatter/body 자연어. "Use the Task tool with subagent_type=..." 가 가장 구체적.
   out = out.replace(/Use the \*?\*?Task\*?\*? tool with subagent_type=([\w-]+)[^.\n]*/g,
     'Spawn a worker agent (multi_agent) with the contents of agents/$1.md as message');
+  // "Task tool with subagent_type=..." — Use the 가 없는 케이스 (then/and 가 앞에)
+  out = out.replace(/\bTask\s+tool\s+with\s+subagent_type=([\w-]+)[^.\n]*/g,
+    'spawn a worker agent (multi_agent) with the contents of agents/$1.md as message');
   out = out.replace(/the \*?\*?Task\*?\*? tool/g, 'the spawn_agent natural-language dispatch');
+  // 잔존 "Task tool" (any preceding word) — 일반 fallback
+  out = out.replace(/\bTask\s+tool\b/g, 'spawn_agent dispatch');
   out = out.replace(/\bTask\s*\(\s*subagent_type\s*=\s*["']?([\w-]+)["']?[^)]*\)/g,
     'Spawn a worker agent (multi_agent) with agents/$1.md as message');
 
