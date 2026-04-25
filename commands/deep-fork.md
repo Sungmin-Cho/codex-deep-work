@@ -38,13 +38,13 @@ TARGET_SESSION=$(echo "$ARGS" | tr -s ' ' | xargs)
 ```
 
 세션 ID가 비어있으면:
-1. `$PROJECT_ROOT/.claude/deep-work-current-session` 포인터 파일에서 읽는다
-2. 없으면 `$PROJECT_ROOT/.claude/deep-work-sessions.json`에서 활성(idle이 아닌) 세션 목록을 보여주고 선택하게 한다
+1. `$PROJECT_ROOT/.codex/deep-work-current-session` 포인터 파일에서 읽는다
+2. 없으면 `$PROJECT_ROOT/.codex/deep-work-sessions.json`에서 활성(idle이 아닌) 세션 목록을 보여주고 선택하게 한다
 3. 활성 세션이 없으면 에러: "활성 세션이 없습니다. /deep-work로 새 세션을 시작하세요."
 
 ### Step 2: Fork 대상 검증
 
-대상 세션의 상태 파일(`$PROJECT_ROOT/.claude/deep-work.{SESSION_ID}.md`)을 읽는다.
+대상 세션의 상태 파일(`$PROJECT_ROOT/.codex/deep-work.{SESSION_ID}.md`)을 읽는다.
 
 **검증 항목:**
 - 상태 파일이 존재하는지
@@ -203,7 +203,7 @@ artifacts_removed:
 
 ### Step 6: 상태 파일 생성
 
-새 세션의 상태 파일을 생성한다. Git 환경에서는 `$FORK_PROJECT_ROOT/.claude/deep-work.{NEW_SESSION_ID}.md`, Non-git에서는 `$PROJECT_ROOT/.claude/deep-work.{NEW_SESSION_ID}.md`에 생성한다.
+새 세션의 상태 파일을 생성한다. Git 환경에서는 `$FORK_PROJECT_ROOT/.codex/deep-work.{NEW_SESSION_ID}.md`, Non-git에서는 `$PROJECT_ROOT/.codex/deep-work.{NEW_SESSION_ID}.md`에 생성한다.
 
 부모 상태 파일에서 YAML frontmatter를 복제하되:
 - `session_id`: 새 ID로 교체

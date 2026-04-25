@@ -24,16 +24,16 @@ Resolve the session to resume using the following priority:
 #### 1a. Direct session ID (env var)
 
 If `DEEP_WORK_SESSION_ID` environment variable is set:
-- Read `.claude/deep-work.${DEEP_WORK_SESSION_ID}.md` directly
+- Read `.codex/deep-work.${DEEP_WORK_SESSION_ID}.md` directly
 - If the file exists and `current_phase` is not `idle`: proceed to Step 1.5 with this session
 - If the file doesn't exist or phase is `idle`: fall through to 1b
 
 #### 1b. Registry-based session discovery
 
-Read the registry (`.claude/deep-work-sessions.json`). Filter to sessions where `current_phase` is NOT `idle`.
+Read the registry (`.codex/deep-work-sessions.json`). Filter to sessions where `current_phase` is NOT `idle`.
 
 **If no active sessions in registry:**
-- Check for legacy fallback: read `.claude/deep-work.local.md`
+- Check for legacy fallback: read `.codex/deep-work.local.md`
   - If exists and `current_phase` is NOT `idle` and NOT empty: use this file as the state file. Display:
     ```
     ℹ️ 레거시 세션을 감지했습니다. 이 세션을 재개합니다.
@@ -50,7 +50,7 @@ Read the registry (`.claude/deep-work-sessions.json`). Filter to sessions where 
 **If exactly 1 active session in registry:**
 - Auto-select this session
 - Update the pointer file: `write_session_pointer SESSION_ID`
-- Read `.claude/deep-work.${SESSION_ID}.md`
+- Read `.codex/deep-work.${SESSION_ID}.md`
 - Proceed to Step 1.5
 
 **If 2+ active sessions in registry:**
@@ -66,7 +66,7 @@ Read the registry (`.claude/deep-work-sessions.json`). Filter to sessions where 
 
 - After user selects a session:
   - Update the pointer file: `write_session_pointer SELECTED_SESSION_ID`
-  - Read `.claude/deep-work.${SELECTED_SESSION_ID}.md`
+  - Read `.codex/deep-work.${SELECTED_SESSION_ID}.md`
   - Proceed to Step 1.5
 
 #### 1c. Extract state

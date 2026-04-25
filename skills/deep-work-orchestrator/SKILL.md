@@ -23,7 +23,7 @@ If absent:
 > `--resume-from=<phase>` 가 지정된 경우: Step 1의 **interactive/setup 대화(프로필 질문, 작업 모드 선택, 알림 설정 등)만 건너뛴다**. `SESSION_ID`는 `--session`에서 결정되고, 기존 state file을 재사용하며 새 세션 파일을 쓰지 않는다.
 >
 > **반드시 수행 (NO2 + NP1 fix)**:
-> 1. Step 1-2 state file 로드: `.claude/deep-work.{SESSION_ID}.md`에서 `work_dir`, `task_description`, `worktree_enabled`, `worktree_path`, `team_mode`, `cross_model_enabled`, `tdd_mode`, `iteration_count`, `skipped_phases`, `research_approved`, `research_approved_hash`, `plan_approved`, `plan_approved_hash`, `current_phase` 등 모든 상태 변수 로드.
+> 1. Step 1-2 state file 로드: `.codex/deep-work.{SESSION_ID}.md`에서 `work_dir`, `task_description`, `worktree_enabled`, `worktree_path`, `team_mode`, `cross_model_enabled`, `tdd_mode`, `iteration_count`, `skipped_phases`, `research_approved`, `research_approved_hash`, `plan_approved`, `plan_approved_hash`, `current_phase` 등 모든 상태 변수 로드.
 > 2. `$WORK_DIR` 변수 초기화 (state의 `work_dir`에서). §3-2/§3-3 hash check 등 파일 경로 참조 시 필수.
 > 3. Step 2 (조건 변수 조립 — `ARGS`, `tdd_mode` 등) 수행하여 Skill 호출에 session/worktree/tdd context 보존.
 >
@@ -66,7 +66,7 @@ SessionStart hook의 update-check.sh 출력 처리:
 ## 1-2. 기존 세션 확인 (Multi-Session)
 
 ### Legacy 마이그레이션
-`.claude/deep-work.local.md` 존재 + active → `migrate_legacy_state` 실행
+`.codex/deep-work.local.md` 존재 + active → `migrate_legacy_state` 실행
 
 ### Stale 세션 감지
 `detect_stale_sessions` → 각 stale 세션에 대해 AskUserQuestion:
@@ -106,7 +106,7 @@ write_session_pointer "$SESSION_ID"
 
 ### 프로필 로드
 
-`.claude/deep-work-profile.yaml` 존재 시:
+`.codex/deep-work-profile.yaml` 존재 시:
 1. version 확인 (v1 → v2 자동 마이그레이션)
 2. 프리셋 선택: `--profile=X` / 단일 프리셋 → 자동선택 / 복수 → AskUserQuestion
 3. 프리셋 필드 → 내부 변수 매핑 (team_mode, project_type, start_phase, tdd_mode, model_routing, notifications, cross_model_preference)
@@ -159,7 +159,7 @@ Git repository인 경우:
 
 ## 1-9. State 파일 + Registry 생성
 
-`.claude/deep-work.{SESSION_ID}.md` 생성 (YAML frontmatter):
+`.codex/deep-work.{SESSION_ID}.md` 생성 (YAML frontmatter):
 - session_id, current_phase, task_description, work_dir
 - team_mode, tdd_mode, model_routing, worktree_*, cross_model_*
 - 각 phase timestamp, test_retry_count, max_test_retries 등
@@ -168,7 +168,7 @@ Registry 등록: `register_session "$SESSION_ID" ...`
 
 ## 1-10. 프로필 저장 (첫 실행 시)
 
-프로필 미존재 시 `.claude/deep-work-profile.yaml`에 v2 형식으로 저장.
+프로필 미존재 시 `.codex/deep-work-profile.yaml`에 v2 형식으로 저장.
 
 ## 1-11. 세션 확인 표시
 

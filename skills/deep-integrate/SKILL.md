@@ -14,10 +14,10 @@ description: |
 1. **Session resolution** (기존 deep-brainstorm과 동일):
    - `$ARGUMENTS`에 `--session=<id>` 있으면 사용
    - 없으면 `DEEP_WORK_SESSION_ID` env var
-   - 없으면 `.claude/deep-work-current-session` pointer
+   - 없으면 `.codex/deep-work-current-session` pointer
    - 모두 실패 시: "활성 deep-work 세션이 없습니다. `/deep-work`부터 시작하세요." 출력 후 종료(exit 1)
 
-2. **State file 경로**: `.claude/deep-work.${SESSION_ID}.md`
+2. **State file 경로**: `.codex/deep-work.${SESSION_ID}.md`
    - 파일 부재 시: 동일 에러 메시지 + 종료
    - `current_phase` 읽기. `test` 또는 `idle`이 아니면 경고 후 선택:
      - `current_phase == "implement"` 등 → AskUserQuestion "Phase 4 Test를 완료하지 않았습니다. 계속 진행할까요?"

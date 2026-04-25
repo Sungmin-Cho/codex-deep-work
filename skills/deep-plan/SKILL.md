@@ -17,8 +17,8 @@ description: "Phase 2 — Plan: create a detailed implementation plan"
 
 1. Session ID 결정
    - $ARGUMENTS에 --session=ID → 사용
-   - 없으면 → .claude/deep-work-sessions.json에서 active session 탐색
-2. State 파일 읽기: `.claude/deep-work.{SESSION_ID}.md`
+   - 없으면 → .codex/deep-work-sessions.json에서 active session 탐색
+2. State 파일 읽기: `.codex/deep-work.{SESSION_ID}.md`
 3. 조건 변수 확인:
    - worktree_path — $ARGUMENTS 우선, 없으면 state에서
    - team_mode — $ARGUMENTS 우선, 없으면 state에서 (없으면 solo)

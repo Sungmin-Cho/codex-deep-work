@@ -95,10 +95,19 @@ function applyToolMapping(src) {
   return out;
 }
 
+// 문서 본문 (markdown / .md skill / commands) 의 `.claude/deep-work*` 레퍼런스를
+// `.codex/deep-work*` 로 갱신. runtime 코드는 isStateLiteral 로 보호되지만, 문서는
+// migration 후 runtime 경로 노출이 적절함 (verify check 4 PASS 조건).
+function transformDocStatePathRefs(src) {
+  return src.replace(/\.claude\/(deep-work[/.\-])/g, '.codex/$1');
+}
+
 export function transformSkillBody(src, skillName) {
   let out = src;
   // 1. literal path replace (non-state)
   out = applyLiteralReplace(out);
+  // 1.5. doc-level state path refs → .codex/ (markdown 본문 갱신)
+  out = transformDocStatePathRefs(out);
   // 2. tool mapping
   out = applyToolMapping(out);
   // 3. first-run install (only deep-work-orchestrator)

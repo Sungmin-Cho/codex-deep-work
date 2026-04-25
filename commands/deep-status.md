@@ -86,9 +86,9 @@ If a flag is provided, execute the corresponding section after the default view.
 
 Resolve the current session using the following priority:
 
-1. **Environment variable**: If `DEEP_WORK_SESSION_ID` is set → read `.claude/deep-work.${DEEP_WORK_SESSION_ID}.md`
-2. **Pointer file**: If `.claude/deep-work-current-session` exists → read session ID → read `.claude/deep-work.${SESSION_ID}.md`
-3. **Legacy fallback**: Read `.claude/deep-work.local.md`
+1. **Environment variable**: If `DEEP_WORK_SESSION_ID` is set → read `.codex/deep-work.${DEEP_WORK_SESSION_ID}.md`
+2. **Pointer file**: If `.codex/deep-work-current-session` exists → read session ID → read `.codex/deep-work.${SESSION_ID}.md`
+3. **Legacy fallback**: Read `.codex/deep-work.local.md`
 
 If none of the above resolves to an existing state file, display:
 
@@ -353,7 +353,7 @@ If `$ARGUMENTS` contains `--all`:
 
 #### 10a. Multi-session dashboard
 
-Read the registry (`.claude/deep-work-sessions.json`). If the registry exists and has sessions:
+Read the registry (`.codex/deep-work-sessions.json`). If the registry exists and has sessions:
 
 Display a table of all registered sessions:
 
@@ -392,7 +392,7 @@ Then execute Steps 4 (default view for current session), 5 (session history), 6 
 
 If `$ARGUMENTS` contains `--tree`:
 
-레지스트리(`.claude/deep-work-sessions.json`)에서 모든 세션을 읽고, `fork_parent` 관계로 트리를 구성한다.
+레지스트리(`.codex/deep-work-sessions.json`)에서 모든 세션을 읽고, `fork_parent` 관계로 트리를 구성한다.
 
 **구현 방법:**
 1. 레지스트리에서 모든 세션을 읽는다

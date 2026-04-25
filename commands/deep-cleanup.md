@@ -109,13 +109,13 @@ Cleanup 완료
 
 #### 7-1. Fork 세션 스캔
 
-레지스트리(`.claude/deep-work-sessions.json`)에서 `fork_parent`가 있는 세션 중 `current_phase`가 `idle`인 것을 식별한다.
+레지스트리(`.codex/deep-work-sessions.json`)에서 `fork_parent`가 있는 세션 중 `current_phase`가 `idle`인 것을 식별한다.
 
 ```bash
 # 레지스트리에서 idle fork 세션 추출
 node -e '
   const fs = require("fs");
-  const reg = JSON.parse(fs.readFileSync(".claude/deep-work-sessions.json", "utf8"));
+  const reg = JSON.parse(fs.readFileSync(".codex/deep-work-sessions.json", "utf8"));
   const forks = Object.entries(reg.sessions)
     .filter(([_, s]) => s.fork_parent && s.current_phase === "idle")
     .map(([id, s]) => ({ id, parent: s.fork_parent, worktree: s.worktree_path }));

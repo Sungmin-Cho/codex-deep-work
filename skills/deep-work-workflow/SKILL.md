@@ -42,7 +42,7 @@ description: |
 - **TDD exempt 확장**: .toml, .ini, .cfg, .lock, .editorconfig, 이미지 파일 면제
 - **splitCommands 개선**: backtick, $() subshell 깊이 추적으로 중첩 표현식 내부 잘못된 분할 방지
 - **TDD state 검증**: 알 수 없는 상태값 차단 + 안내 메시지
-- **에러 로깅**: /dev/null → `.claude/deep-work-guard-errors.log` 파일 기록
+- **에러 로깅**: /dev/null → `.codex/deep-work-guard-errors.log` 파일 기록
 - **Node.js 25 호환**: file-tracker.sh argv 인덱싱 수정 (receipt 생성 무음 실패 해결)
 - **Assumption Engine 수정**: CLI 버그, threshold 전달, dedup 순서 (keep-latest), 입력 가드
 
@@ -324,7 +324,7 @@ Previous sessions are preserved when starting new ones. Use `/deep-status` to vi
 
 ## Profile System
 
-First run saves setup answers to `.claude/deep-work-profile.yaml` as `default` preset. Subsequent runs skip all questions. Multi-preset support: `dev`, `quick`, `review` etc.
+First run saves setup answers to `.codex/deep-work-profile.yaml` as `default` preset. Subsequent runs skip all questions. Multi-preset support: `dev`, `quick`, `review` etc.
 
 **Flags**: `--profile=quick`, `--team`, `--zero-base`, `--skip-research`, `--no-branch`, `--setup`
 
@@ -334,7 +334,7 @@ First run saves setup answers to `.claude/deep-work-profile.yaml` as `default` p
 
 ## State Management
 
-Session state is stored in `.claude/deep-work.{SESSION_ID}.md` (e.g., `.claude/deep-work.s-a3f7b2c1.md`) with YAML frontmatter tracking. Legacy single-session path `.claude/deep-work.local.md` is auto-migrated on first use.
+Session state is stored in `.codex/deep-work.{SESSION_ID}.md` (e.g., `.codex/deep-work.s-a3f7b2c1.md`) with YAML frontmatter tracking. Legacy single-session path `.codex/deep-work.local.md` is auto-migrated on first use.
 - Current phase (research / plan / implement / test / idle)
 - Task description
 - Work directory
