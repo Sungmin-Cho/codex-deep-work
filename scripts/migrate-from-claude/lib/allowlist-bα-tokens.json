@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "comment": "B-α 토큰 검사 (verify-migration.sh) 시 Markdown 문서/주석에서 교육용 등장이 허용되는 토큰. W-R1 교정.",
+  "tokens": [
+    "TaskCreate", "TaskUpdate", "TaskList", "TaskGet", "TodoWrite",
+    "TeamCreate", "TeamDelete", "TeamGet", "SendMessage",
+    "Skill(", "AskUserQuestion(",
+    "Task tool"
+  ],
+  "allowed_contexts": [
+    "fenced code block (```...```) inside *.md",
+    "table cell inside *.md describing migration mapping",
+    "comment block inside skill/agent prompt explaining what was converted",
+    "AGENTS.md Semantic Losses section",
+    "scripts/migrate-from-claude/lib/tool-mapping.json"
+  ],
+  "allowed_paths": [
+    "AGENTS.md",
+    "docs/**/*.md",
+    "scripts/migrate-from-claude/**/*",
+    "skills/shared/references/**/*.md"
+  ],
+  "forbidden_contexts": [
+    "active CC tool API call form (e.g., TaskCreate( in production code)",
+    "skill body outside fenced code block describing actual workflow"
+  ]
+}

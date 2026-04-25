@@ -1,0 +1,38 @@
+{
+  "version": "0.1.0",
+  "comment": "경로 + 함수 API 변환 (C3-A1 + C-PA1 교정 — state 경로는 literal_replace 금지, 함수 API 만 사용).",
+  "literal_replace": {
+    "comment": "non-state 리터럴만 (URL/이름/파일명). state 경로(.claude/deep-work/, .claude/.hook-tool-input.* 등) 는 절대 여기 추가 금지.",
+    "claude-deep-work":               "codex-deep-work",
+    "claude-deep-suite":              "codex-deep-suite",
+    "CLAUDE.md":                      "AGENTS.md"
+  },
+  "state_path_replace": {
+    "comment": "C-PA1 교정: state 경로는 함수 API 호출 사이트로 분류 후 read/write 별도 변환. 직접 .codex/deep-work/ 치환 금지.",
+    "classification_rules": [
+      {
+        "scope": "read sites",
+        "match_regex": "(?:cat|jq|grep|read|source|\\[\\[ -[fer] )\\s+[\"']?([^\"']*\\.(claude|codex)/deep-work/[^\"']+)[\"']?",
+        "transform": "$(read_state_file \"<relative-path>\")",
+        "note": "state 파일을 cat / jq / grep 등으로 *읽는* 호출. 호출 형식 보존, 인자만 함수로 wrap."
+      },
+      {
+        "scope": "write sites",
+        "match_regex": "(?:>|>>|tee|cp\\s+\\S+\\s+|mv\\s+\\S+\\s+)[\"']?([^\"']*\\.(claude|codex)/deep-work/[^\"']+)[\"']?",
+        "transform": "write_state_file \"<relative-path>\" \"<content>\"",
+        "note": "state 파일에 *쓰는* 호출. write_state_file 로 변환."
+      },
+      {
+        "scope": "ambiguous",
+        "match_regex": "(?:\"|')\\.?/?(\\.claude|\\.codex)/deep-work/[^\"']+(?:\"|')",
+        "transform": "manual review required",
+        "note": "read/write 분류 모호한 경우 사람 검토 (Phase B step 8 의 hybrid 카테고리)."
+      }
+    ],
+    "verify_rule": "verify-migration.sh 가 다음을 fail 처리: (a) `.codex/deep-work/` raw filesystem access 가 wrapper 구현 (utils.sh) 또는 테스트 fixture 외에서 등장하면 fail. (b) `read_state_file`/`write_state_file` 호출 외부의 state 경로 직접 접근 0건 검증."
+  },
+  "deferred": {
+    "${CLAUDE_PLUGIN_ROOT}": "OI-7 — Codex 대체값 미확정. Phase A step 4 OI-7 해결 후 룰 추가.",
+    "~/.claude/plugins/cache": "OI-7 일부 — Codex 실경로 확정 후 별도 codemod"
+  }
+}

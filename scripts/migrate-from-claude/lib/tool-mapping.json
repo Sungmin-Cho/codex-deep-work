@@ -1,0 +1,41 @@
+{
+  "version": "0.1.0",
+  "scope": "B-alpha",
+  "comment": "B-α 스코프 — parallel spawn_agent 분기만 보존. 미보존 primitive 는 자연어 fallback.",
+  "native_passthrough": [
+    "Read", "Write", "Edit", "MultiEdit", "Glob", "Grep", "Bash",
+    "WebFetch", "WebSearch"
+  ],
+  "rename": {
+    "TaskCreate": { "to": "update_plan", "shape": "natural-language", "note": "1:N plan-step 모델로 통합" },
+    "TaskUpdate": { "to": "update_plan", "shape": "natural-language" },
+    "TaskList":   { "to": "update_plan", "shape": "natural-language" },
+    "TaskGet":    { "to": "update_plan", "shape": "natural-language" },
+    "TodoWrite":  { "to": "update_plan", "shape": "natural-language" }
+  },
+  "subagent": {
+    "Task": {
+      "to": "spawn_agent",
+      "shape": "hybrid",
+      "single_pattern": "Spawn a worker agent (multi_agent) with the contents of agents/<name>.md as message",
+      "parallel_pattern": "Spawn N worker agents in sequence (multi_agent slot limit allows up to N concurrent), then wait N times, close_agent N times",
+      "model_override": "stripped — Codex worker uses default model. model_routing field demoted to information-only.",
+      "tool_whitelist": "stripped — natural-language guidance only, post-hoc receipt validation"
+    }
+  },
+  "natural_language_only": {
+    "Skill":            { "shape": "natural-language", "template": "the <name> skill" },
+    "AskUserQuestion":  { "shape": "natural-language", "template": "ask the user with numbered options: 1) ... 2) ..." },
+    "TeamCreate":       { "shape": "natural-language", "template": "Track parallel workers in main session memory under name: ..." },
+    "TeamDelete":       { "shape": "natural-language", "template": "Conclude parallel worker tracking" },
+    "TeamGet":          { "shape": "natural-language", "template": "Refer to main session memory for worker N status" },
+    "SendMessage": {
+      "shape": "two-pattern",
+      "pattern_1_aggregation": "N worker single-message spawn → all wait → main aggregates result for next step",
+      "pattern_2_sequential":  "Pass the following result to the next worker as message"
+    }
+  },
+  "unsupported": {
+    "NotebookEdit": { "fallback": "Write" }
+  }
+}
