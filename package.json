@@ -9,26 +9,26 @@
     "url": "https://github.com/Sungmin-Cho/codex-deep-work"
   },
   "keywords": [
-    "workflow", "deep-work", "evidence-driven", "tdd", "codex"
+    "deep-work",
+    "workflow",
+    "codex"
   ],
   "files": [
     ".codex-plugin/",
-    "AGENTS.md",
     "commands/",
-    "agents/",
     "skills/",
     "hooks/",
     "sensors/",
     "health/",
-    "templates/",
+    "agents/",
     "scripts/",
-    "tests/",
-    "assumptions.json",
     "README.md",
+    "assumptions.json",
+    "templates/",
     "README.ko.md",
     "CHANGELOG.md",
     "CHANGELOG.ko.md",
-    "LICENSE"
+    "AGENTS.md"
   ],
   "scripts": {
     "test": "node --test"
