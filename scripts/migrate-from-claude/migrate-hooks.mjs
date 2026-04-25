@@ -178,13 +178,25 @@ export function applyStatePathReplace(src) {
     return `${replaced}  # state-glob-pattern (codex-migrate)`;
   }).join('\n');
 
-  // (2.5) Plan-Patch-38 (deep-review v6 6차 C1): shell `find_project_root` 의 marker dual-search.
-  // vendor utils.sh:30 의 `[[ -d "$dir/.claude" ]]` 같은 marker check 를 Codex `.codex` 우선
-  // + legacy `.claude` fallback 으로 변환. C1 의 sensor-trigger.js dual-marker 와 일관.
-  out = out.replace(/\[\[[ \t]+-d[ \t]+"(\$[A-Za-z_][A-Za-z0-9_]*|\$\{[A-Za-z_][A-Za-z0-9_]*\})\/\.claude"[ \t]+\]\]/g, (m, varRef) => {
-    touched = true;
-    return `[[ -d "${varRef}/.codex" || -d "${varRef}/.claude" ]]`;
-  });
+  // (2.5) Plan-Patch-38 + Plan-Patch-41 (deep-review v6 6차 C1 + 7차 C2): shell marker dual-search.
+  // bracket 형태에 따라 다른 syntax 사용:
+  //   `[[ -d X ]]` (bash double-bracket) → `[[ -d X || -d Y ]]` (logical OR 안에 가능)
+  //   `[ -d X ]` (POSIX single-bracket) → `[ -d X -o -d Y ]` (POSIX -o operator)
+  //   single-bracket 에서 `||` 사용 시 runtime syntax error.
+  out = out.replace(
+    /\[\[[ \t]+-([defr])[ \t]+"(\$[A-Za-z_][A-Za-z0-9_]*|\$\{[A-Za-z_][A-Za-z0-9_]*\})\/\.claude(\/?)"[ \t]+\]\]/g,
+    (m, flag, varRef, slash) => {
+      touched = true;
+      return `[[ -${flag} "${varRef}/.codex${slash}" || -${flag} "${varRef}/.claude${slash}" ]]`;
+    }
+  );
+  out = out.replace(
+    /\[[ \t]+-([defr])[ \t]+"(\$[A-Za-z_][A-Za-z0-9_]*|\$\{[A-Za-z_][A-Za-z0-9_]*\})\/\.claude(\/?)"[ \t]+\]/g,
+    (m, flag, varRef, slash) => {
+      touched = true;
+      return `[ -${flag} "${varRef}/.codex${slash}" -o -${flag} "${varRef}/.claude${slash}" ]`;
+    }
+  );
 
   // (3) path assignment sites — local var="$PROJECT_ROOT/.claude/deep-work..."
   const assignmentRe = /(=\s*["']?[^"'\s]*?)\.claude\/(deep-work[/.\-][^"'\s>]+)/g;
@@ -334,7 +346,11 @@ export function generateHooksTemplate(cc) {
 }
 
 const TARGET_EXTS_HOOK_SCRIPTS = new Set(['.sh', '.js', '.mjs']);
-const UTILS_SOURCE_LINE = 'source "$(dirname "$0")/lib/utils.sh"';
+// Plan-Patch-40 (deep-review v6 7차 C1, 전원 2/2): `$(dirname "$0")` 가 caller-relative —
+// utils.sh 가 library 로 source 됐을 때 $0 는 caller (parent script 또는 bash). 다양한 invocation
+// 컨텍스트에서 resolve fail. `${BASH_SOURCE[0]}` 는 source 됐을 때 자기 자신의 파일 path —
+// 모든 컨텍스트에서 정확.
+const UTILS_SOURCE_LINE = 'source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"';
 
 // Plan-Patch-35 (deep-review v6 5차 C3): sourced library 검출.
 // vendor utils.sh 같은 library 가 source 됐을 때 STDIN_JSON=$(cat) 가 module-level 에 있으면

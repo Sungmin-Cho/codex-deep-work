@@ -50,7 +50,7 @@ PROFILE_FILE=""
 find_project_root() {
   local dir="$PWD"
   while [ "$dir" != "/" ]; do
-    if [ -d "$dir/.claude" ]; then echo "$dir"; return 0; fi
+    if [ -d "$dir/.codex" -o -d "$dir/.claude" ]; then echo "$dir"; return 0; fi
     dir="$(dirname "$dir")"
   done
   echo "$PWD"; return 1

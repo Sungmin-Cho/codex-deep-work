@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
-source "$(dirname "$0")/lib/utils.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
 # utils.sh — Shared utilities for deep-work hook scripts
 # Source this file: source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"

@@ -2,7 +2,7 @@
 # migrated-by: codex-migrate v0.1
 # TODO(Phase-C): pre-existing $(cat) at lines 25 — manual stdin migration required.
 # Auto-injection skipped to avoid stdin double-consumption (deep-review C3).
-source "$(dirname "$0")/lib/utils.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
 # file-tracker.sh — PostToolUse hook: implement 단계 파일 변경 자동 추적 + receipt 수집
 # v4.0: Bash 도구 지원, active slice에 변경 매핑, receipt JSON 업데이트

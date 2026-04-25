@@ -16,7 +16,7 @@ export CLAUDE_TOOL_USE_TOOL_INPUT="$TOOL_INPUT"
 export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
 export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
 # --- end codex-hook-stdin-parser ---
-source "$(dirname "$0")/lib/utils.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
 # session-end.sh — Stop hook: CLI 세션 종료 시 활성 deep-work 세션 확인 및 알림
 # + v5.0: 세션 히스토리 JSONL append (harness assumption engine용)
