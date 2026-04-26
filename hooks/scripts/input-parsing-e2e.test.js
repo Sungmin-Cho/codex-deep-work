@@ -1,5 +1,13 @@
 // migrated-by: codex-migrate v0.1
-// TODO(Phase-C): multi-level nesting in env fixture — manual stdin migration required (deep-review v3-round C3 / 3차 C2).
+// 부록 F #9 (Phase C 2026-04-26): multi-level nesting fixture 마이그레이션 완료.
+// CC era 의 `CLAUDE_TOOL_USE_INPUT` env-var fixture (single-level `{file_path}`) 를
+// Codex envelope (`{tool_name, tool_input: {file_path}, hook_event_name}`) 으로 변환.
+// 단 phase-transition.sh 는 PostToolUse 에서 stdin 이 비어있을 가능성 (file-tracker 가
+// 먼저 소진) → CLAUDE_TOOL_USE_INPUT env 또는 cache 에서 읽음. 따라서 두 사이트 분리:
+//   - PreToolUse 시뮬레이션 → stdin envelope 전달
+//   - PostToolUse 후속 phase-transition.sh → env-var 또는 cache file fallback (vendor 동작)
+// parse_hook_stdin 가 envelope 파싱 후 5 backward-compat env aliases (CLAUDE_TOOL_USE_INPUT
+// 포함) 를 export 하므로 양쪽 호환.
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');

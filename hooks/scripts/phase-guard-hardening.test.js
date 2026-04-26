@@ -1,5 +1,9 @@
 // migrated-by: codex-migrate v0.1
-// TODO(Phase-C): multi-level nesting in env fixture — manual stdin migration required (deep-review v3-round C3 / 3차 C2).
+// 부록 F #9 (Phase C 2026-04-26): multi-level nesting fixture 마이그레이션 완료.
+// 이전엔 vendor (CC era) 의 single-level `{file_path}` 를 stdin 으로 직접 보냈음.
+// Codex 환경에서는 stdin 이 envelope 형식 (`{tool_name, tool_input, hook_event_name, ...}`)
+// 이며 phase-guard.sh 가 parse_hook_stdin 으로 envelope 파싱 후 inner tool_input 추출.
+// runPhaseGuard 헬퍼가 toolInput 을 envelope 으로 wrap 하여 통일.
 const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -10,9 +14,17 @@ const { spawnSync } = require('child_process');
 const PHASE_GUARD = path.resolve(__dirname, 'phase-guard.sh');
 const PHASE_GUARD_CORE = path.resolve(__dirname, 'phase-guard-core.js');
 
-function runPhaseGuard(cwd, env, toolInput) {
+// 부록 F #9 + #6: Codex hook stdin envelope wrapper.
+// toolInput 은 inner `{file_path: ...}` 형식. envelope 로 wrap 하여 stdin 전달 →
+// phase-guard.sh 의 parse_hook_stdin 가 envelope 을 파싱하여 inner 추출.
+function runPhaseGuard(cwd, env, toolInput, toolName = 'Write') {
+  const envelope = {
+    tool_name: toolName,
+    tool_input: toolInput,
+    hook_event_name: 'PreToolUse',
+  };
   return spawnSync('bash', [PHASE_GUARD], {
-    input: JSON.stringify(toolInput),
+    input: JSON.stringify(envelope),
     cwd,
     env,
     encoding: 'utf8',
