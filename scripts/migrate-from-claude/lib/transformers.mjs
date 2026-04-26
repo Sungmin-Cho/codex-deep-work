@@ -41,6 +41,10 @@ export function withMarker(content, ext = 'md') {
     if (firstNl < 0) return content + '\n' + marker + '\n';
     return content.slice(0, firstNl + 1) + marker + '\n' + content.slice(firstNl + 1);
   }
+  if (marker === MIGRATION_MARKERS.md) {
+    const fm = content.match(/^(---\n[\s\S]*?\n---\n)/);
+    if (fm) return fm[1] + marker + '\n' + content.slice(fm[1].length);
+  }
   return marker + '\n' + content;
 }
 

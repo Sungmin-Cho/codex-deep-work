@@ -1,4 +1,3 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-integrate
 description: |
@@ -6,6 +5,7 @@ description: |
   추천하고 사용자가 선택·실행하는 대화형 루프. Phase 4(Test) 완료 후 호출되거나
   `$deep-work:deep-integrate`로 명시적 재진입 가능. `--skip-integrate`로 건너뛸 수 있다.
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 # Phase 5: Integrate — AI 추천 루프
 

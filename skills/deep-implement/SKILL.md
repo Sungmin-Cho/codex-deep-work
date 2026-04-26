@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-implement
 description: "Phase 3 — Implement: slice-based TDD execution of approved plan"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 > [!IMPORTANT]
 > **Skill body echo 금지**

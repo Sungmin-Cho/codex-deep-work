@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-test
 description: "Phase 4 — Test: comprehensive verification + implement-test retry loop"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 > [!IMPORTANT]
 > **Skill body echo 금지**

@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-research
 description: "Phase 1 — Research: exhaustively analyze the codebase"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 > [!IMPORTANT]
 > **Skill body echo 금지**

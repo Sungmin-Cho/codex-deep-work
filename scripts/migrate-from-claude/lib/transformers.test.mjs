@@ -42,9 +42,19 @@ describe('transformers MIGRATION_MARKERS', () => {
     assert.match(out, /^\/\/ migrated-by: codex-migrate v0\.1\n/);
   });
 
-  it('withMarker by ext: md prepends HTML comment', () => {
+  it('withMarker by ext: md prepends HTML comment for plain markdown', () => {
     const out = withMarker('# Header', 'md');
     assert.match(out, /^<!-- migrated-by: codex-migrate v0\.1 -->\n/);
+  });
+
+  it('withMarker by ext: md preserves YAML frontmatter as the first block', () => {
+    const src = `---
+name: deep-test
+description: test skill
+---
+# Body`;
+    const out = withMarker(src, 'md');
+    assert.match(out, /^---\nname: deep-test\ndescription: test skill\n---\n<!-- migrated-by: codex-migrate v0\.1 -->\n# Body/);
   });
 
   it('withMarker by ext: json leaves content valid JSON', () => {

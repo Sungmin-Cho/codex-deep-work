@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-plan
 description: "Phase 2 — Plan: create a detailed implementation plan"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 > [!IMPORTANT]
 > **Skill body echo 금지**

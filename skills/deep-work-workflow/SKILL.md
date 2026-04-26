@@ -1,4 +1,3 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-work-workflow
 description: |
@@ -7,6 +6,7 @@ description: |
   "분석 후 구현", "structured workflow", or complex multi-file tasks
   that benefit from structured planning before implementation.
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 # Deep Work Workflow: Brainstorm → Research → Plan → Implement → Test → Integrate
 
