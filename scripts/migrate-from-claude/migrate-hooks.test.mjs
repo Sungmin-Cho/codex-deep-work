@@ -316,6 +316,49 @@ describe('migrate-hooks Plan-Patch-38 (deep-review v6 6차 C1) — shell + JS ma
     const out = applyJsStatePathRefs(src);
     assert.ok(out.includes(`path.join(root, '.codex', 'deep-work'`));
   });
+
+  // /deep-review 2026-04-26 C1 회귀 차단: full-pipeline (processHookScript) 통합 검증.
+  // 신규 path-mapping.json 의 narrow mapping (`="$PROJECT_ROOT/.claude"`, `find "$PROJECT_ROOT/.claude"`)
+  // 이 marker check 를 보존하는지 검증. 이전 broad mapping (`$PROJECT_ROOT/.claude"` with closing quote)
+  // 은 marker `[[ -d "$PROJECT_ROOT/.claude" ]]` 도 함께 변환 → applyStatePathReplace dual-search 못 동작.
+  it('full pipeline preserves marker dual-search AND converts cache assignment (C1 fix)', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'c1-pipeline-'));
+    try {
+      const srcPath = path.join(tmpDir, 'mixed-vendor.sh');
+      const dstPath = path.join(tmpDir, 'out-mixed-vendor.sh');
+      // marker check (Plan-Patch-38 dual-search 대상) + cache assignment (W4 narrow literal_replace 대상)
+      // + find directory (W4 narrow literal_replace 대상) 한 파일에 공존.
+      const src = `#!/usr/bin/env bash
+[[ -d "$PROJECT_ROOT/.claude" ]] && echo legacy_present
+CACHE_DIR="$PROJECT_ROOT/.claude"
+find "$PROJECT_ROOT/.claude" -maxdepth 1 -name '.hook-tool-input.*' -delete
+`;
+      fs.writeFileSync(srcPath, src);
+      processHookScript(srcPath, dstPath, true);
+      const out = fs.readFileSync(dstPath, 'utf8');
+
+      // (a) marker check: dual-search 보존 (Codex first, .claude fallback)
+      assert.ok(out.includes('-d "$PROJECT_ROOT/.codex"'),
+        `marker should have .codex. got:\n${out}`);
+      assert.ok(out.includes('-d "$PROJECT_ROOT/.claude"'),
+        `marker should retain .claude fallback (legacy 호환성). got:\n${out}`);
+      assert.ok(/\[\[[^\]]+\|\|[^\]]+\]\]/.test(out),
+        `marker dual-search should use || inside [[. got:\n${out}`);
+
+      // (b) cache assignment: .claude → .codex (narrow literal_replace)
+      assert.ok(out.includes('CACHE_DIR="$PROJECT_ROOT/.codex"'),
+        `cache assignment should be migrated to .codex. got:\n${out}`);
+
+      // (c) find directory: .claude → .codex (narrow literal_replace)
+      assert.ok(out.includes('find "$PROJECT_ROOT/.codex" -maxdepth'),
+        `find directory should be migrated to .codex. got:\n${out}`);
+
+      // bash syntax 유지
+      assertBashSyntaxOk(out, 'C1 full-pipeline mixed marker+cache');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('migrate-hooks Plan-Patch-39 (deep-review v6 6차 C2) — UTILS_SOURCE_LINE / STDIN_PARSER inject 분리', () => {
@@ -324,8 +367,11 @@ describe('migrate-hooks Plan-Patch-39 (deep-review v6 6차 C2) — UTILS_SOURCE_
   it('vendor utils.sh (non-lib path) gets UTILS_SOURCE_LINE injected when read_state_file is referenced', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-patch-39-'));
     try {
-      // vendor utils.sh — basename is utils.sh but path does NOT include /lib/
-      const srcPath = path.join(tmpDir, 'vendor-utils.sh');
+      // /deep-review 2026-04-26 W1 fix: 회귀 차단 효력 회복.
+      // 이전엔 `vendor-utils.sh` basename — isSourcedLibrary 가 false → pre-39 코드도 inject 함 → 회귀 차단 효력 0.
+      // 회귀 시나리오 정확 재현: basename `utils.sh` (NOT under /lib/). isSourcedLibrary=true (basename 매칭) AND
+      // isLibUtilsSh=false (/lib/ 미포함) 의 차이가 발현되는 유일한 조합.
+      const srcPath = path.join(tmpDir, 'utils.sh');  // basename utils.sh, top-level (no /lib/)
       const dstPath = path.join(tmpDir, 'out-utils.sh');
       // simulate vendor content that includes a state path → applyStatePathReplace 가 read_state_file 삽입
       const vendor = `#!/usr/bin/env bash\ncat "$PROJECT_ROOT/.claude/deep-work.${'$'}{SESSION_ID}.md"\n`;
@@ -333,7 +379,8 @@ describe('migrate-hooks Plan-Patch-39 (deep-review v6 6차 C2) — UTILS_SOURCE_
       processHookScript(srcPath, dstPath, true);
       const out = fs.readFileSync(dstPath, 'utf8');
       assert.ok(out.includes('read_state_file'), 'state path was converted');
-      assert.ok(out.includes(UTILS_SOURCE_LINE), 'vendor utils.sh should source lib/utils.sh');
+      assert.ok(out.includes(UTILS_SOURCE_LINE),
+        'vendor utils.sh (basename utils.sh, NOT in /lib/) must get UTILS_SOURCE_LINE — Plan-Patch-39 의 isLibUtilsSh AND condition 분리 검증');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
@@ -392,11 +439,18 @@ describe('migrate-hooks Plan-Patch-40 (deep-review v6 7차 C1) — UTILS_SOURCE_
 describe('migrate-hooks Plan-Patch-41 (deep-review v6 7차 C2) — POSIX single-bracket marker uses -o, not ||', () => {
   // single-bracket `[ -d X ]` 에서 `||` 사용 시 runtime syntax error.
   // POSIX -o operator 로 별도 처리.
+  //
+  // /deep-review 2026-04-26 W2: assertBashSyntaxOk (= bash -n) 는 `[ ... || ... ]` 의 runtime error 를
+  // 검출하지 못한다. bash -n 은 `||` 를 list separator 로 파싱 — 두 명령 `[ -d X` 와 `-d Y ]` 둘 다
+  // syntactically OK. 실제 runtime 에서는 `[`: missing `]' 발생 (exit 127).
+  // 따라서 회귀 차단 효력은 텍스트 assertion (`includes('-o ')`, `!/\[\s*-d.*\|\|.*\]/`) 이 load-bearing.
+  // assertBashSyntaxOk 는 보조 — 다른 종류의 syntax error (mismatched bracket 등) 를 검출.
   it('converts single-bracket `[ -d "$VAR/.claude" ]` to `[ -d ... -o -d ... ]`', () => {
     const src = `[ -d "$PROJECT_ROOT/.claude" ] && echo found`;
     const out = applyStatePathReplace(src);
     assert.ok(out.includes('-d "$PROJECT_ROOT/.codex"'));
     assert.ok(out.includes('-d "$PROJECT_ROOT/.claude"'));
+    // load-bearing: -o operator 강제, || 금지 (runtime error 회피)
     assert.ok(out.includes('-o '), 'single-bracket must use -o operator (not ||)');
     assert.ok(!/\[\s*-d[^[\]]*\|\|[^[\]]*\]/.test(out), 'must NOT use || inside single bracket');
     assertBashSyntaxOk(out, 'Plan-Patch-41 single-bracket POSIX -o');

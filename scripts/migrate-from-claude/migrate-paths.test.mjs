@@ -45,11 +45,19 @@ describe('migrate-paths literal_replace', () => {
     assert.ok(!out.includes('.claude/.phase-cache-'));
   });
 
-  it('replaces $PROJECT_ROOT/.claude" → $PROJECT_ROOT/.codex" for bare CACHE_DIR (7차 W4)', () => {
-    const src = `CACHE_DIR="$PROJECT_ROOT/.claude"\nfind "$PROJECT_ROOT/.claude" -maxdepth 1`;
+  // /deep-review 2026-04-26 C1 fix: narrow mapping (assignment + find context).
+  // 이전 broad mapping 은 marker check `[[ -d "$PROJECT_ROOT/.claude" ]]` 까지 변환 → dual-search 손실.
+  it('narrow `=$PROJECT_ROOT/.claude"` mapping converts CACHE_DIR + find but NOT marker (C1 fix)', () => {
+    const src = `CACHE_DIR="$PROJECT_ROOT/.claude"\nfind "$PROJECT_ROOT/.claude" -maxdepth 1\n[[ -d "$PROJECT_ROOT/.claude" ]] && echo legacy`;
     const out = applyLiteralReplace(src);
-    assert.ok(out.includes('CACHE_DIR="$PROJECT_ROOT/.codex"'));
-    assert.ok(out.includes('find "$PROJECT_ROOT/.codex"'));
+    // 변환 대상
+    assert.ok(out.includes('CACHE_DIR="$PROJECT_ROOT/.codex"'),
+      'assignment context (=") should be migrated');
+    assert.ok(out.includes('find "$PROJECT_ROOT/.codex"'),
+      'find context should be migrated');
+    // 보존 대상 — marker 는 applyStatePathReplace 의 dual-search 가 별도 처리
+    assert.ok(out.includes('[[ -d "$PROJECT_ROOT/.claude" ]]'),
+      'marker check `[[ -d ... ]]` must NOT be touched by literal_replace (dual-search 가 별도 처리)');
   });
 });
 

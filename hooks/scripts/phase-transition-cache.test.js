@@ -13,7 +13,10 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-cache-'));
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    // /deep-review 2026-04-26 C2: post-migration 모든 state + cache 는 .codex/ 사용.
+    // phase-transition.sh:53 의 state-glob `*.codex/deep-work.*.md` 가 .claude/ 입력을 거부하므로
+    // state file 도 .codex/ 에 둬야 한다. (legacy `.claude/` import 는 read_state_file 단독 테스트로 별도 검증.)
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => {
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -21,13 +24,13 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
 
   function writeStateFile(sid, fields) {
     const yaml = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
-    const fp = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const fp = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(fp, `---\n${yaml}\n---\n`);
     return fp;
   }
 
   function writePointer(sid) {
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sid);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
   }
 
   it('reads stdin cache when CLAUDE_TOOL_USE_INPUT is unset (Claude Code prod reality)', () => {
@@ -42,8 +45,9 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
 
     // Simulate what file-tracker.sh does: write the tool input to a PPID-keyed
     // cache file before phase-transition.sh runs. Use a stable test PPID.
+    // /deep-review 2026-04-26 C2: cache path 는 .codex/ (production write_state target 일치).
     const testPpid = String(process.pid);
-    const cacheFile = path.join(tmpDir, '.claude', `.hook-tool-input.${testPpid}`);
+    const cacheFile = path.join(tmpDir, '.codex', `.hook-tool-input.${testPpid}`);
     fs.writeFileSync(cacheFile, JSON.stringify({ file_path: stateFile }));
 
     // Run phase-transition.sh with env vars unset, but with $$ matching testPpid
@@ -56,7 +60,7 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
     // That matches $PPID inside the bash subprocess.
     // Clean up the old cache and rewrite with correct key.
     fs.unlinkSync(cacheFile);
-    const correctCache = path.join(tmpDir, '.claude', `.hook-tool-input.${process.pid}`);
+    const correctCache = path.join(tmpDir, '.codex', `.hook-tool-input.${process.pid}`);
     fs.writeFileSync(correctCache, JSON.stringify({ file_path: stateFile }));
 
     const env = { ...process.env };
@@ -101,7 +105,8 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
     assert.equal(ft.status, 0, `file-tracker failed: ${ft.stderr}`);
 
     // Verify cache was written (keyed by this node process's PID = bash's PPID)
-    const cacheFile = path.join(tmpDir, '.claude', `.hook-tool-input.${process.pid}`);
+    // /deep-review 2026-04-26 C2: cache path 는 .codex/ (production write target 일치).
+    const cacheFile = path.join(tmpDir, '.codex', `.hook-tool-input.${process.pid}`);
     assert.ok(fs.existsSync(cacheFile), 'file-tracker.sh must write the PPID cache');
 
     // Step 2: phase-transition.sh runs with env unset; should read the cache.

@@ -129,11 +129,15 @@ describe('file-tracker.sh v6.2.4 post-review: cache write is atomic (tmp+mv)', (
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-w3-'));
+    // /deep-review 2026-04-26 C2: cache 는 .codex/, legacy state file 은 .claude/.
+    // 이전엔 .claude/ 만 만들고 거기에서 stray tmp 확인 → production 이 .codex/ 에 쓰므로
+    // assertion 이 vacuous green (검사 디렉토리에 tmp 가 없으니 항상 통과). C2 fix.
     fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  it('after run, no stray .tmp.* files remain in .claude/', () => {
+  it('after run, no stray .tmp.* files remain in .codex/ (C2 fix — was vacuous .claude/)', () => {
     const sid = 's-w3';
     const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
     fs.writeFileSync(statePath, '---\ncurrent_phase: implement\nwork_dir: .deep-work/wd\nactive_slice: SLICE-001\n---\n');
@@ -150,7 +154,8 @@ describe('file-tracker.sh v6.2.4 post-review: cache write is atomic (tmp+mv)', (
       cwd: tmpDir, env, encoding: 'utf8', timeout: 5000,
     });
 
-    const stray = fs.readdirSync(path.join(tmpDir, '.claude'))
+    // production 이 cache 를 .codex/.hook-tool-input.* 에 쓴다. tmp+mv atomic 검증은 .codex/ 디렉토리에서.
+    const stray = fs.readdirSync(path.join(tmpDir, '.codex'))
       .filter(n => n.startsWith('.hook-tool-input.') && n.includes('.tmp.'));
     assert.deepEqual(stray, [], `stray tmp files: ${JSON.stringify(stray)}`);
   });

@@ -128,7 +128,9 @@ describe('e2e: phase-transition.sh handles fork worktree paths', () => {
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-fork-'));
+    // /deep-review 2026-04-26 C2: cache 는 .codex/, legacy state file 은 .claude/ (read_state_file fallback 검증).
     fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
@@ -149,8 +151,9 @@ describe('e2e: phase-transition.sh handles fork worktree paths', () => {
     });
     assert.equal(result.status, 0, `stderr: ${result.stderr}`);
 
-    // The cache file must be named correctly — no slashes inside SESSION_ID
-    const entries = fs.readdirSync(path.join(tmpDir, '.claude'));
+    // The cache file must be named correctly — no slashes inside SESSION_ID.
+    // /deep-review 2026-04-26 C2: phase-transition.sh 가 .phase-cache-${SID} 를 .codex/ 에 쓴다.
+    const entries = fs.readdirSync(path.join(tmpDir, '.codex'));
     const cacheFiles = entries.filter(e => e.startsWith('.phase-cache-'));
     assert.equal(cacheFiles.length, 1, `expected 1 cache file, got: ${JSON.stringify(cacheFiles)}`);
     assert.equal(cacheFiles[0], `.phase-cache-${childSid}`);

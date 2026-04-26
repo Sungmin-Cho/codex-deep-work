@@ -10,7 +10,8 @@
     "$HOME/.claude/plugins/cache": "$HOME/.codex/plugins/cache",
     ".claude/.hook-tool-input": ".codex/.hook-tool-input",
     ".claude/.phase-cache-": ".codex/.phase-cache-",
-    "$PROJECT_ROOT/.claude\"": "$PROJECT_ROOT/.codex\""
+    "=\"$PROJECT_ROOT/.claude\"": "=\"$PROJECT_ROOT/.codex\"",
+    "find \"$PROJECT_ROOT/.claude\"": "find \"$PROJECT_ROOT/.codex\""
   },
   "plugin_root_replace": {
     "comment": "OI-7 + Plan-Patch-16 RESOLVED — plugin cache stable path. ${PLUGIN_SHA} 는 A' First-Run Install Pattern 의 install_hooks_template 단계에서 사용자 환경의 marketplace.json 에서 sha 를 읽어 substitute. hooks-template.json 은 placeholder 보존 (install 가이드용), hooks/hooks.json 은 dev_fallback 적용 (개발 시점 직접 실행 가능).",

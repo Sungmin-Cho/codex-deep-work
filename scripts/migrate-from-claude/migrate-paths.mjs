@@ -14,8 +14,15 @@ const PATH_MAPPING = JSON.parse(fs.readFileSync(path.join(__dirname, 'lib/path-m
 const STATE_LITERAL_PATTERNS = [
   /\.claude\/deep-work\//,
   /\.claude\/deep-work\.[A-Za-z0-9-]+\.md/,
-  // 7차 W4: `.claude/.hook-tool-input` 와 `.claude/.phase-cache-` 는 state 파일이 아닌 plugin cache.
-  // literal_replace 의 명시 매핑 (`.claude/.hook-tool-input` → `.codex/.hook-tool-input`)으로 처리됨.
+  // 7차 W4 + /deep-review 2026-04-26 C1/I3: `.claude/.hook-tool-input` / `.claude/.phase-cache-` 는
+  // state 파일이 아닌 plugin cache. path-mapping.json `literal_replace` 의 4개 명시 매핑으로 처리:
+  //   - `.claude/.hook-tool-input` → `.codex/.hook-tool-input`
+  //   - `.claude/.phase-cache-` → `.codex/.phase-cache-`
+  //   - `="$PROJECT_ROOT/.claude"` → `="$PROJECT_ROOT/.codex"` (assignment context, narrow C1 fix)
+  //   - `find "$PROJECT_ROOT/.claude"` → `find "$PROJECT_ROOT/.codex"` (find context, narrow C1 fix)
+  // narrow mapping 은 marker check `[[ -d "$PROJECT_ROOT/.claude" ]]` 를 보존 (applyStatePathReplace 의
+  // dual-search 가 별도 처리). 이전 broad mapping (`$PROJECT_ROOT/.claude"` with closing quote) 은
+  // marker 도 함께 변환 → dual-search 손실 → C1 회귀.
   /\.claude\/deep-work-current-session/,
   /\.claude\/deep-work-sessions/,
   /\.claude\/deep-work-guard-errors/,
