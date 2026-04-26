@@ -2,6 +2,13 @@
 
 ## Unreleased — Phase C 완료 + Phase D 진입 (2026-04-26)
 
+### Phase E pre-flight (2026-04-26)
+
+- `file-tracker.sh`, `phase-guard.sh`, `session-end.sh` 의 active hook runtime 에서 process substitution (`/dev/fd`) 의존을 제거. stderr 는 temp file 로 capture 한 뒤 `.codex/` state API 로 append.
+- `file-tracker` marker-flip 테스트를 Codex envelope stdin + `.codex/` write-target state file 기준으로 갱신하여 Phase C legacy import 계약과 일치시킴.
+- deterministic hook portability 실패 3건 해소 후 `tests/.expected-fail-count` 를 136 → 133 으로 낮춤.
+- deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) 와 v6.4.0 integration fixtures 를 복원하고, JSON fixture/schema 의 invalid HTML migration marker 를 제거. migration marker helper 가 `.json` content 를 변경하지 않도록 정정. 테스트 baseline 은 1320, expected fail 은 97 로 갱신.
+
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 
 - **/deep-review 2026-04-26-152137 (3-way)**: 7 critical + 5 W/I 흡수 (commit `b0b30ad`).

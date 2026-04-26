@@ -16,6 +16,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
+_log_stderr_file() {
+  local err_file="$1"
+  [[ -s "$err_file" ]] || return 0
+  while IFS= read -r line; do
+    write_state_file_append "deep-work-guard-errors.log" "$line"
+  done < "$err_file"
+}
+
+_make_stderr_tmp() {
+  local prefix="$1"
+  local tmp
+  tmp="$(mktemp "${TMPDIR:-/tmp}/${prefix}.XXXXXX" 2>/dev/null || true)"
+  printf '%s' "$tmp"
+}
+
 # ─── 프로젝트 루트 & 상태 파일 ──────────────────────────────
 
 init_deep_work_state
@@ -175,6 +190,8 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
     # pending sidecar is now truly a last-resort safety net rather than a
     # routine path.
     if _acquire_lock "$_RECEIPT_LOCK" 40 0.05; then
+      _NODE_ERR_TMP="$(_make_stderr_tmp "file-tracker-receipt-err")"
+      _NODE_ERR_TARGET="${_NODE_ERR_TMP:-/dev/null}"
       node -e '
         const fs = require("fs");
         const [, receiptFile, pendingFile, filePath, ts, toolName] = process.argv;
@@ -244,7 +261,11 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
           try { fs.unlinkSync(receiptFile + ".tmp." + process.pid); } catch(_) {}
           // NOTE: do not delete .draining on error — it is recoverable.
         }
-      ' "$RECEIPT_FILE" "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" "$TOOL_NAME" 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
+      ' "$RECEIPT_FILE" "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" "$TOOL_NAME" 2>"$_NODE_ERR_TARGET" || true
+      if [[ -n "$_NODE_ERR_TMP" ]]; then
+        _log_stderr_file "$_NODE_ERR_TMP"
+        rm -f "$_NODE_ERR_TMP" 2>/dev/null || true
+      fi
       _release_lock "$_RECEIPT_LOCK"
     else
       # Lock timeout (very rare after retry bump) — queue for the next
@@ -321,6 +342,8 @@ if [[ "$TOOL_NAME" != "Bash" && -n "${FILE_PATH:-}" ]]; then
     # implement+GREEN) no longer lose sensor_pending or sensor_cache_valid.
     _STATE_LOCK="${STATE_FILE}.lock"
     if _acquire_lock "$_STATE_LOCK" 20 0.05; then
+      _NODE_ERR_TMP="$(_make_stderr_tmp "file-tracker-marker-err")"
+      _NODE_ERR_TARGET="${_NODE_ERR_TMP:-/dev/null}"
       node -e '
         const fs = require("fs");
         const f = process.argv[1];
@@ -334,7 +357,11 @@ if [[ "$TOOL_NAME" != "Bash" && -n "${FILE_PATH:-}" ]]; then
           }
           fs.writeFileSync(f, t);
         } catch(_) { /* best-effort: never block PostToolUse */ }
-      ' "$STATE_FILE" 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
+      ' "$STATE_FILE" 2>"$_NODE_ERR_TARGET" || true
+      if [[ -n "$_NODE_ERR_TMP" ]]; then
+        _log_stderr_file "$_NODE_ERR_TMP"
+        rm -f "$_NODE_ERR_TMP" 2>/dev/null || true
+      fi
       _release_lock "$_STATE_LOCK"
     fi
     # On lock timeout, skip the flip for this invocation; the next marker

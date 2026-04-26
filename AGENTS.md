@@ -79,6 +79,6 @@ Codex 는 plugin 레벨 per-agent `tools` whitelist 강제 불가능 (CC frontma
 ## Test Suite
 
 - 실행: 레포 루트에서 `node --test`
-- Baseline 카운트: `tests/.baseline-count = 1314` (Phase C 종료 시점 갱신, Node v22)
-- Expected fail 카운트: `tests/.expected-fail-count = 136` (Phase D 진입 시점 deferred subsystems — fork registration / file ownership / multi-session 등)
+- Baseline 카운트: `tests/.baseline-count = 1320` (Phase E quality pass 에서 deep-integrate schema subtests 활성화 후 갱신)
+- Expected fail 카운트: `tests/.expected-fail-count = 97` (Phase E quality pass 에서 JSON fixture/schema + deep-integrate scripts + v6.4 smoke fixtures 복구 후 갱신)
 - verify-migration.sh 가 count + pass/fail 둘 다 검증 (`/deep-review 2026-04-26 C5` fix)

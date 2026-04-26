@@ -2,7 +2,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  isMigrated, withMarker, MIGRATION_MARKERS, MIGRATION_MARKER,
+  isMigrated, withMarker, markerExtForPath, MIGRATION_MARKERS, MIGRATION_MARKER,
 } from './transformers.mjs';
 
 describe('transformers MIGRATION_MARKERS', () => {
@@ -45,6 +45,13 @@ describe('transformers MIGRATION_MARKERS', () => {
   it('withMarker by ext: md prepends HTML comment', () => {
     const out = withMarker('# Header', 'md');
     assert.match(out, /^<!-- migrated-by: codex-migrate v0\.1 -->\n/);
+  });
+
+  it('withMarker by ext: json leaves content valid JSON', () => {
+    const src = '{"ok":true}\n';
+    const out = withMarker(src, markerExtForPath('fixture.json'));
+    assert.equal(out, src);
+    assert.deepEqual(JSON.parse(out), { ok: true });
   });
 
   it('withMarker is idempotent (no double-injection)', () => {

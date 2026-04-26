@@ -20,6 +20,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
+_log_stderr_file() {
+  local err_file="$1"
+  [[ -s "$err_file" ]] || return 0
+  while IFS= read -r line; do
+    write_state_file_append "deep-work-guard-errors.log" "$line"
+  done < "$err_file"
+}
+
 init_deep_work_state
 
 # ─── Session ID for multi-session ownership checks ──────────
@@ -775,12 +783,19 @@ NODE_INPUT=$(printf '%s' "$TOOL_INPUT" | node -e "
 #   exit 0   → success; inspect decision on stdout (allow / warn / block)
 #   exit 3   → internal Node error; stdout has a 내부 검증 오류 block message
 #   other    → subprocess crash / OOM / timeout; emit generic block
-# Phase C 부록 F #8: stderr redirect 를 process substitution + write_state_file_append 로
-# 변환 (file-tracker.sh:235 와 동일 패턴). raw NODE_ERR_LOG 변수 제거.
+# Phase E pre-flight: avoid process substitution here. Some Codex/sandboxed hook
+# environments reject /dev/fd, which prevents the Node guard from running.
 set +e
-NODE_RESULT=$(echo "$NODE_INPUT" | node "$SCRIPT_DIR/phase-guard-core.js" \
-  2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done))
-NODE_RC=$?
+_NODE_ERR_TMP="$(mktemp "${TMPDIR:-/tmp}/phase-guard-err.XXXXXX" 2>/dev/null || true)"
+if [[ -n "$_NODE_ERR_TMP" ]]; then
+  NODE_RESULT=$(echo "$NODE_INPUT" | node "$SCRIPT_DIR/phase-guard-core.js" 2>"$_NODE_ERR_TMP")
+  NODE_RC=$?
+  _log_stderr_file "$_NODE_ERR_TMP"
+  rm -f "$_NODE_ERR_TMP" 2>/dev/null || true
+else
+  NODE_RESULT=$(echo "$NODE_INPUT" | node "$SCRIPT_DIR/phase-guard-core.js" 2>/dev/null)
+  NODE_RC=$?
+fi
 set -e
 
 if [[ $NODE_RC -eq 3 ]]; then

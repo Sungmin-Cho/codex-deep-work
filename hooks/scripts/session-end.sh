@@ -28,6 +28,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
+_log_stderr_file() {
+  local err_file="$1"
+  [[ -s "$err_file" ]] || return 0
+  while IFS= read -r line; do
+    write_state_file_append "deep-work-guard-errors.log" "$line"
+  done < "$err_file"
+}
+
 # ─── 프로젝트 루트 & 상태 파일 ─────────────────────────────
 
 init_deep_work_state
@@ -313,8 +321,8 @@ append_session_history() {
     done
     # Lock timeout — queue instead of appending without a lock.
     echo "$data" >> "$pending" 2>/dev/null
-    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) session-end JSONL lock timeout, queued to $pending" \
-      > >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) 2>/dev/null || true
+    write_state_file_append "deep-work-guard-errors.log" \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ) session-end JSONL lock timeout, queued to $pending" 2>/dev/null || true
   }
 
   mkdir -p "$history_dir" 2>/dev/null || return 0
@@ -329,8 +337,16 @@ append_session_history() {
   _append_with_lock "$jsonl_file" "$entry"
 }
 
-# Run in subshell — errors must never block session close
-(append_session_history) 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
+# Run in subshell — errors must never block session close. Avoid process
+# substitution because some hook runtimes reject /dev/fd.
+_SESSION_ERR_TMP="$(mktemp "${TMPDIR:-/tmp}/session-end-err.XXXXXX" 2>/dev/null || true)"
+if [[ -n "$_SESSION_ERR_TMP" ]]; then
+  (append_session_history) 2>"$_SESSION_ERR_TMP" || true
+  _log_stderr_file "$_SESSION_ERR_TMP"
+  rm -f "$_SESSION_ERR_TMP" 2>/dev/null || true
+else
+  (append_session_history) 2>/dev/null || true
+fi
 
 # v6.2.4 post-review: cleanup stale PostToolUse stdin-cache files.
 # Remove our own PPID cache (no longer needed after session close) and any

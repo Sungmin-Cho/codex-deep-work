@@ -34,6 +34,7 @@ export function isMigrated(content) {
 // '.sh'/'.js' 의 interpreter line (`#!/usr/bin/env bash`) 이 깨지면 직접 실행 불가.
 export function withMarker(content, ext = 'md') {
   if (isMigrated(content)) return content;
+  if (ext === 'none') return content;
   const marker = MIGRATION_MARKERS[ext] ?? MIGRATION_MARKERS.md;
   if (content.startsWith('#!')) {
     const firstNl = content.indexOf('\n');
@@ -45,6 +46,7 @@ export function withMarker(content, ext = 'md') {
 
 // 파일 확장자 → marker 형식 도우미. caller 가 path.extname() 결과를 넘기면 알맞게 분기.
 export function markerExtForPath(p) {
+  if (p.endsWith('.json')) return 'none';
   if (p.endsWith('.md')) return 'md';
   if (p.endsWith('.sh') || p.endsWith('.bash')) return 'sh';
   if (p.endsWith('.js') || p.endsWith('.mjs') || p.endsWith('.cjs') || p.endsWith('.ts')) return 'js';

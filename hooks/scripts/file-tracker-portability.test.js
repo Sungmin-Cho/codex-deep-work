@@ -13,7 +13,7 @@ describe('file-tracker.sh sensor_cache_valid flip portability', () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-port-'));
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
 
   afterEach(() => {
@@ -21,15 +21,19 @@ describe('file-tracker.sh sensor_cache_valid flip portability', () => {
   });
 
   function runHook(sessionId, statePath, toolInput) {
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sessionId);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sessionId);
     const env = {
       ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
       DEEP_WORK_SESSION_ID: sessionId,
+    };
+    const envelope = {
+      tool_name: 'Write',
+      tool_input: toolInput,
+      hook_event_name: 'PostToolUse',
     };
     try {
       execFileSync('bash', [SCRIPT], {
-        input: JSON.stringify(toolInput),
+        input: JSON.stringify(envelope),
         cwd: tmpDir,
         env,
         encoding: 'utf8',
@@ -43,7 +47,7 @@ describe('file-tracker.sh sensor_cache_valid flip portability', () => {
 
   it('flips sensor_cache_valid: true → false exactly once (no duplicate line)', () => {
     const sid = 's-port1';
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(
       statePath,
       '---\ncurrent_phase: implement\nwork_dir: .deep-work/test\nsensor_cache_valid: true\n---\n'
@@ -60,7 +64,7 @@ describe('file-tracker.sh sensor_cache_valid flip portability', () => {
 
   it('inserts sensor_cache_valid: false when missing', () => {
     const sid = 's-port2';
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(
       statePath,
       '---\ncurrent_phase: implement\nwork_dir: .deep-work/test\n---\n'
@@ -77,7 +81,7 @@ describe('file-tracker.sh sensor_cache_valid flip portability', () => {
 
   it('ignores non-marker files (no flip)', () => {
     const sid = 's-port3';
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(
       statePath,
       '---\ncurrent_phase: implement\nwork_dir: .deep-work/test\nsensor_cache_valid: true\n---\n'
