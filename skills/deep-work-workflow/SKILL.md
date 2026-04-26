@@ -10,11 +10,16 @@ description: |
 
 # Deep Work Workflow: Brainstorm → Research → Plan → Implement → Test → Integrate
 
+> Codex invocation note: use `$deep-work:<skill-name>`. Main workflow entry is
+> `$deep-work:deep-work-orchestrator "task"`. Slash-style names below are
+> migrated command-spec labels or historical workflow names unless a matching
+> skill is explicitly documented.
+
 ## v5.6.0 Session Fork
 
 **v5.6.0 신규 기능:**
 
-### `/deep-fork [session-id] [--from-phase=PHASE]`
+### Session Fork (migrated `deep-fork` spec)
 
 현재 세션을 fork하여 다른 접근법을 탐색합니다. 원래 세션은 보존됩니다.
 
@@ -29,8 +34,8 @@ description: |
   - `fork_children`: 부모 세션의 상태 파일에 자식 목록 기록
   - `fork-snapshot.yaml`: fork 시점 상태 스냅샷 (비교 기준점)
 - **비교 & 시각화**:
-  - `/deep-status --tree`: fork 관계 트리 시각화
-  - `/deep-status --compare`: fork 관계 자동 감지 비교
+  - migrated `deep-status --tree` spec: fork 관계 트리 시각화
+  - migrated `deep-status --compare` spec: fork 관계 자동 감지 비교
 - **Edge cases**: 최대 3세대 fork (경고), idle 세션 fork 금지, stale 부모 검증
 
 ## v5.5.2 Robust Detection & Signal Processing
@@ -68,7 +73,7 @@ description: |
 
 ## v5.3 Precision + Evidence
 
-`/deep-work "task"` 하나로 전체 워크플로우가 자동 진행됩니다.
+`$deep-work:deep-work-orchestrator "task"` 하나로 전체 워크플로우가 자동 진행됩니다.
 Plan 승인이 유일한 필수 인터랙션입니다.
 
 **v5.3 신규 기능:**
@@ -76,21 +81,16 @@ Plan 승인이 유일한 필수 인터랙션입니다.
 - **Session Relevance Detection**: 현재 세션 범위 밖 피드백 감지 → 새 세션 분리 제안
 - **Plan Fidelity Score**: 구현 vs 플랜 충실도 0-100 점수 산출
 - **Session Quality Score**: 세션 종료 시 품질 점수 자동 계산 — 5-component system: Test Pass Rate (25%), Rework Cycles (20%), Plan Fidelity (25%), Sensor Clean Rate (15%), Mutation Score (15%). Sensor/Mutation components excluded proportionally when not_applicable.
-- **Cross-Session Quality Trend**: `/deep-status --history`에서 세션 간 품질 추이 시각화
+- **Cross-Session Quality Trend**: migrated `deep-status --history` spec에서 세션 간 품질 추이 시각화
 - **Assumption Engine Quality Integration**: 품질 점수 기반 규칙 자가 최적화 (cohort 분석, 3세션 minimum gate)
-- **Quality Badge**: `/deep-status --badge`로 shields.io 뱃지 생성
+- **Quality Badge**: migrated `deep-status --badge` spec으로 shields.io 뱃지 생성
 
-**Primary workflow (7):** `/deep-work`, `/deep-research`, `/deep-plan`, `/deep-implement`, `/deep-test`, `/deep-status`, `/deep-debug`
+**Exposed Codex skills:** `$deep-work:deep-work-orchestrator`, `$deep-work:deep-research`, `$deep-work:deep-plan`, `$deep-work:deep-implement`, `$deep-work:deep-test`, `$deep-work:deep-brainstorm`, `$deep-work:deep-integrate`
 
-**Special utility (4):** `/deep-fork`, `/deep-mutation-test`, `/deep-phase-review`, `/deep-sensor-scan`
+**Migrated command specs not yet exposed as direct Codex skills:** `deep-status`, `deep-debug`, `deep-fork`, `deep-mutation-test`, `deep-phase-review`, `deep-sensor-scan`, `drift-check`, `solid-review`, `deep-insight`, `deep-finish`, `deep-report`, `deep-receipt`, `deep-history`, `deep-assumptions`, `deep-slice`, `deep-cleanup`, `deep-resume`
 
-**Quality Gate (3):** `/drift-check`, `/solid-review`, `/deep-insight` — `/deep-test`가 자동 실행; standalone 호출 가능.
-
-**Internal (6):** `/deep-brainstorm`, `/deep-finish`, `/deep-report`, `/deep-receipt`, `/deep-history`, `/deep-assumptions` — orchestrator 또는 `/deep-status`가 내부 참조. 수동 호출도 공식 경로.
-
-**Escape hatch (1):** `/deep-slice` — `phase-guard`가 TDD 블록 시 안내 (`spike`, `reset`).
-
-**Utility (2):** `/deep-cleanup`, `/deep-resume` — standalone 기능. 향후 이관 후 삭제 예정.
+Do not present a migrated command spec as a direct Codex entrypoint until a
+matching skill exists under `skills/`.
 
 **Core mechanisms:**
 - Phase Guard (hook-enforced code blocking)
@@ -113,7 +113,7 @@ The Deep Work workflow prevents these by **strictly separating brainstorming, an
 
 ## The Six Phases
 
-### Phase 0: Brainstorm (`/deep-brainstorm`) — Optional
+### Phase 0: Brainstorm (`$deep-work:deep-brainstorm`) — Optional
 
 **Goal**: Explore "why before how" — define the problem, compare approaches, establish success criteria.
 
@@ -127,7 +127,7 @@ The Deep Work workflow prevents these by **strictly separating brainstorming, an
 **What's blocked**: All code file modifications (enforced by hook)
 **Skip**: Use `--skip-brainstorm` to start directly at Research.
 
-### Phase 1: Research (`/deep-research`)
+### Phase 1: Research (`$deep-work:deep-research`)
 
 **Goal**: Build a complete mental model of the relevant codebase before making any decisions.
 
@@ -144,7 +144,7 @@ The Deep Work workflow prevents these by **strictly separating brainstorming, an
 
 **Features**:
 - **Zero-base mode**: For new projects, researches technology stacks, architecture patterns, and scaffolding instead of existing code
-- **Partial re-run**: `/deep-research --scope=api,data` re-analyzes specific areas only
+- **Partial re-run**: `$deep-work:deep-research --scope=api,data` re-analyzes specific areas only
 - **Research caching**: Reuses previous session's research as baseline, updating only changed areas
 - **Team mode**: 3 specialist agents (arch-analyst, pattern-analyst, risk-analyst) analyze in parallel with progress notifications
 - **Structural Review 강화**: score < 7 auto-fix, 스냅샷 기반 rollback
@@ -153,7 +153,7 @@ The Deep Work workflow prevents these by **strictly separating brainstorming, an
 
 For detailed guidance, see [Research Guide](../shared/references/research-guide.md) or [Zero-Base Guide](../shared/references/zero-base-guide.md).
 
-### Phase 2: Plan (`/deep-plan`)
+### Phase 2: Plan (`$deep-work:deep-plan`)
 
 **Goal**: Create a detailed, reviewable, approvable implementation plan.
 
@@ -176,7 +176,7 @@ For detailed guidance, see [Research Guide](../shared/references/research-guide.
 - **Plan templates**: Auto-suggests templates for common task types (API endpoint, UI component, DB migration, etc.)
 - **Version history**: Previous plans backed up as `plan.v1.md`, `plan.v2.md` with change logs
 - **Mode re-evaluation**: Suggests Team↔Solo switching based on plan complexity
-- **Exit Gate to Implement (v6.3.1)**: 문서 최종 승인 후 Orchestrator Phase Exit Gate가 "진행 / 재실행 / 일시정지"를 묻는다. "진행" 선택 시 Implement phase 자동 호출 (수동 `/deep-implement` 불필요).
+- **Exit Gate to Implement (v6.3.1)**: 문서 최종 승인 후 Orchestrator Phase Exit Gate가 "진행 / 재실행 / 일시정지"를 묻는다. "진행" 선택 시 Implement phase 자동 호출 (수동 `$deep-work:deep-implement` 불필요).
 - **Claude 자체 재검토**: plan 작성 직후 placeholder/일관성/누락 자동 점검 및 수정
 - **Structural Review 강화**: score < 7 auto-fix, 스냅샷 기반 rollback
 - **종합 판단**: cross-review 후 Claude 판단 + 사용자 일괄 확인 (개별 conflict 질문 대체)
@@ -186,7 +186,7 @@ For detailed guidance, see [Research Guide](../shared/references/research-guide.
 
 For detailed guidance, see [Planning Guide](../shared/references/planning-guide.md).
 
-### Phase 3: Implement (`/deep-implement`)
+### Phase 3: Implement (`$deep-work:deep-implement`)
 
 **Goal**: Mechanically execute the approved plan, task by task.
 
@@ -209,13 +209,13 @@ For detailed guidance, see [Planning Guide](../shared/references/planning-guide.
 **Features**:
 - **Checkpoint support**: If interrupted, resumes from the last incomplete task
 - **Team mode**: Tasks clustered by file ownership, distributed to parallel agents with cross-review and progress notifications
-- **Exit Gate handoff to Test (v6.3.1)**: slice 완료 후 Implement는 완료-marker만 기록하고 Orchestrator Exit Gate로 제어 반환. 사용자 "진행" 선택 시 Test phase 호출 (수동 `/deep-test` 불필요).
+- **Exit Gate handoff to Test (v6.3.1)**: slice 완료 후 Implement는 완료-marker만 기록하고 Orchestrator Exit Gate로 제어 반환. 사용자 "진행" 선택 시 Test phase 호출 (수동 `$deep-work:deep-test` 불필요).
 - **TDD state 업데이트 필수화** (v5.5.1): B-1/B-2 완료 후 state file 업데이트를 필수로 명시, 미수행 시 phase guard 차단 경고
 - **Slice Review**: Per-slice 2-stage independent review (spec compliance → code quality) after sensors pass. Solo mode only; delegation mode uses self-review recorded as `slice_review.mode: "self"`
 
 For detailed guidance, see [Implementation Guide](../shared/references/implementation-guide.md).
 
-### Phase 4: Test (`/deep-test`)
+### Phase 4: Test (`$deep-work:deep-test`)
 
 **Goal**: Verify the implementation through comprehensive automated testing.
 
@@ -223,7 +223,7 @@ For detailed guidance, see [Implementation Guide](../shared/references/implement
 - Auto-detects verification commands (test, lint, typecheck) from project config
 - Runs all checks sequentially, records results
 - **Sensor Clean gate**: Reads `sensor_results` from receipts (no re-execution) to verify all slices passed computational sensors
-- **Mutation testing**: Verifies AI-generated test quality by running mutation analysis (stryker/mutmut). Survived mutants trigger automatic test improvement via return to the implement phase — `/deep-mutation-test` handles this transition internally
+- **Mutation testing**: Verifies AI-generated test quality by running mutation analysis (stryker/mutmut). Survived mutants trigger automatic test improvement via return to the implement phase — the migrated `deep-mutation-test` spec handles this transition internally
 - **Cross-slice consistency + backfill review**: Phase 4 now verifies inter-slice compatibility instead of per-slice compliance (done in Phase 3). Slices that skipped Phase 3 review get backfill (보완) review here.
 - **Pass**: Session completes, report generated
 - **Fail**: Returns to implement phase for fixes (up to 3 retries)
@@ -242,36 +242,36 @@ For detailed guidance, see [Testing Guide](../shared/references/testing-guide.md
 
 ### Phase 5: Integrate (v6.3.0, skippable)
 
-Phase 4 Test 완료 후 옵션으로 호출되는 "다음 단계 추천 루프". 설치된 `deep-review`/`deep-docs`/`deep-wiki`/`deep-dashboard`/`deep-evolve` 플러그인의 아티팩트를 읽어 AI가 최대 3개의 다음 단계를 추천하면, 사용자가 선택·실행하거나 skip·finish한다. `--skip-integrate`로 건너뛸 수 있고, `/deep-integrate`로 명시적 재진입도 가능하다. 자세한 UX/데이터 계약은 `docs/superpowers/specs/2026-04-18-phase5-integrate-design.md` 참조.
+Phase 4 Test 완료 후 옵션으로 호출되는 "다음 단계 추천 루프". 설치된 `deep-review`/`deep-docs`/`deep-wiki`/`deep-dashboard`/`deep-evolve` 플러그인의 아티팩트를 읽어 AI가 최대 3개의 다음 단계를 추천하면, 사용자가 선택·실행하거나 skip·finish한다. `--skip-integrate`로 건너뛸 수 있고, `$deep-work:deep-integrate`로 명시적 재진입도 가능하다. 자세한 UX/데이터 계약은 `docs/superpowers/specs/2026-04-18-phase5-integrate-design.md` 참조.
 
 ## Quality Gates & Utilities
 
-### Plan Alignment Check (/drift-check) — *Quality Gate — auto-runs in /deep-test; standalone: /drift-check [plan-file]*
+### Plan Alignment Check (migrated `drift-check` spec) — *Quality Gate — auto-runs in `$deep-work:deep-test`*
 
 Compares plan.md items with actual git diff. Reports implemented, missing, out-of-scope, and design drift.
-Standalone mode available: `/drift-check [plan-file]`.
+Direct Codex entrypoint requires a matching skill wrapper.
 
-### SOLID Design Review (/solid-review) — *Quality Gate — auto-runs in /deep-test; standalone: /solid-review [target]*
+### SOLID Design Review (migrated `solid-review` spec) — *Quality Gate — auto-runs in `$deep-work:deep-test`*
 
 Evaluates code against the 5 SOLID design principles with a per-principle scorecard.
-Standalone mode available: `/solid-review [target]`. See [SOLID Guide](../shared/references/solid-guide.md).
+See [SOLID Guide](../shared/references/solid-guide.md).
 
-### Code Insight Analysis (/deep-insight) — *Quality Gate — auto-runs in /deep-test; standalone: /deep-insight [target]*
+### Code Insight Analysis (migrated `deep-insight` spec) — *Quality Gate — auto-runs in `$deep-work:deep-test`*
 
 Measures file metrics, complexity indicators, and dependency graphs. Never blocks workflow.
-Standalone mode available: `/deep-insight [target]`. See [Insight Guide](../shared/references/insight-guide.md).
+See [Insight Guide](../shared/references/insight-guide.md).
 
-### Session Report (/deep-report) — *Internal — auto-generated after test pass; manual: /deep-report or /deep-status --report*
+### Session Report (migrated `deep-report` spec) — *Internal — auto-generated after test pass*
 
 Generates a comprehensive session report (research, plan, implementation, test outcomes, phase durations).
-Auto-generated after all tests pass. Manual: `/deep-report` or `/deep-status --report`.
+Auto-generated after all tests pass. Direct Codex entrypoint requires a matching skill wrapper.
 
 ## Phase Enforcement
 
 Hooks enforce phase boundaries and track activity:
 
 - **PreToolUse** (`phase-guard.sh`): During Research, Plan, and Test phases — Write/Edit tools are blocked for all files except `$WORK_DIR/` documents and the state file. During Implement — all tools available. No session — no restrictions.
-- **PostToolUse** (`file-tracker.sh`): During Implement phase — automatically logs modified file paths to `$WORK_DIR/file-changes.log` with timestamps. Used by `/deep-report` and `/deep-insight`.
+- **PostToolUse** (`file-tracker.sh`): During Implement phase — automatically logs modified file paths to `$WORK_DIR/file-changes.log` with timestamps. Used by the migrated report and insight specs.
 - **Stop** (`session-end.sh`): On CLI session end — if a deep-work session is active, outputs a reminder message and sends notification via configured channels.
 
 This is not a suggestion — it's a hard gate. The AI literally cannot modify code files until the plan is approved, and cannot modify code during testing.
@@ -279,24 +279,23 @@ This is not a suggestion — it's a hard gate. The AI literally cannot modify co
 ## Quick Start
 
 ```
-/deep-work "Add user authentication with JWT tokens"
+$deep-work:deep-work-orchestrator "Add user authentication with JWT tokens"
 # v6.3.1 Phase Exit Gates — 각 phase 완료 시 사용자 확인 (진행/재실행/일시정지)
 # → Brainstorm → [Exit Gate] → Research → [review+approval + Exit Gate]
 # → Plan → [review+approval + Exit Gate] → Implement → [Exit Gate]
 # → Test → [Exit Gate: Integrate 또는 Finish] → Finish
 
 # 수동 오버라이드가 필요할 때:
-/deep-research                  # 리서치 다시 실행
-/deep-plan                      # 플랜 수정
-/deep-implement                 # 구현 재실행
-/deep-test                      # 테스트 재실행
-/deep-status                    # 상태 확인 (--receipts, --history, --report, --assumptions)
-/deep-debug                     # 디버깅 모드
+$deep-work:deep-research        # 리서치 다시 실행
+$deep-work:deep-plan            # 플랜 수정
+$deep-work:deep-implement       # 구현 재실행
+$deep-work:deep-test            # 테스트 재실행
+$deep-work:deep-integrate       # Phase 5 재진입
 ```
 
 ### Session Options
 
-During `/deep-work` initialization:
+During `$deep-work:deep-work-orchestrator` initialization:
 - **Solo / Team** mode selection
 - **Existing / Zero-Base** project type
 - **Research / Plan** starting phase (skip research if you know the codebase)
@@ -320,7 +319,7 @@ Each session creates a unique task folder under `.deep-work/`:
 │   └── report.md
 ```
 
-Previous sessions are preserved when starting new ones. Use `/deep-status` to view history or `/deep-status --compare` to compare sessions.
+Previous sessions are preserved when starting new ones. The migrated `deep-status` spec covers history and comparison once wired through a skill.
 
 ## Profile System
 
@@ -328,9 +327,9 @@ First run saves setup answers to `.codex/deep-work-profile.yaml` as `default` pr
 
 **Flags**: `--profile=quick`, `--team`, `--zero-base`, `--skip-research`, `--no-branch`, `--setup`
 
-## Session Resume (/deep-resume)
+## Session Resume (migrated `deep-resume` spec)
 
-`/deep-work` 진입 시 stale 세션은 자동 감지되지만, active 세션 선택·worktree 컨텍스트 복원·phase별 resume dispatch는 `/deep-resume`을 통해서만 가능합니다.
+`$deep-work:deep-work-orchestrator` 진입 시 stale 세션은 자동 감지되지만, active 세션 선택·worktree 컨텍스트 복원·phase별 resume dispatch는 migrated `deep-resume` spec이 담당합니다. Direct Codex entrypoint requires a matching skill wrapper.
 
 ## State Management
 
@@ -344,7 +343,7 @@ Session state is stored in `.codex/deep-work.{SESSION_ID}.md` (e.g., `.codex/dee
 - Test retry count and pass status
 - Phase timestamps (started_at, completed_at for each phase)
 
-Use `/deep-status` at any time to see the current state, progress, phase durations, and next recommended action.
+Use the migrated `deep-status` spec, once wired through a skill, to see the current state, progress, phase durations, and next recommended action.
 
 ## When to Use Deep Work
 
@@ -367,10 +366,10 @@ Use `/deep-status` at any time to see the current state, progress, phase duratio
 - Trivial text or config changes
 - You already know exactly what to do
 
-**Lightweight mode** (skip to /deep-plan directly):
+**Lightweight mode** (skip to Plan directly):
 - Touches 2-4 files in a well-understood area
 - Follows established patterns with minor extensions
-- Start with `/deep-work` then select "Plan부터" to skip research
+- Start with `$deep-work:deep-work-orchestrator` then select "Plan부터" to skip research
 
 ## Complementary Usage with Built-in Plan Mode
 

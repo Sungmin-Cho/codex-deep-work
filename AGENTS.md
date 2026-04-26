@@ -10,7 +10,9 @@ commands, skills, hooks, sensors, health checks, and migration tooling.
 - Package repo: `Sungmin-Cho/codex-deep-work`
 - Suite marketplace repo: `Sungmin-Cho/codex-deep-suite`
 - Plugin manifest: `.codex-plugin/plugin.json`
-- Main entrypoint: `/deep-work "task description"`
+- Main Codex entrypoint: `$deep-work:deep-work-orchestrator "task description"`
+- Migrated command spec: `commands/deep-work.md` (`/deep-work` in legacy
+  slash-command wording)
 - Test command: `npm test`
 - Current migration scope: **B-alpha**. The port preserves the user-facing
   workflow where Codex has equivalent primitives, and documents weaker areas
@@ -44,16 +46,18 @@ codex_hooks = true
 - Without these flags, the workflow degrades to natural-language guidance and
   post-hoc validation.
 
-On first use, `/deep-work` should prompt to install hook definitions from
-`hooks/hooks-template.json` into the user's target repository at
-`<repo>/.codex/hooks.json`. Declining the prompt is valid, but hook-based
+On first use, `$deep-work:deep-work-orchestrator` should prompt to install hook
+definitions from `hooks/hooks-template.json` into the user's target repository
+at `<repo>/.codex/hooks.json`. Declining the prompt is valid, but hook-based
 enforcement will be weaker.
 
 ## Repository Map
 
-- `commands/` - Slash command specifications. Start here when changing user
-  behavior. `commands/deep-work.md` is the orchestrator.
-- `skills/` - Codex skill entrypoints and workflow wrappers.
+- `commands/` - Migrated slash-command specifications used as workflow source
+  material. Start here when changing behavior. `commands/deep-work.md` is the
+  orchestrator spec, but direct Codex invocation goes through skills.
+- `skills/` - Codex skill entrypoints and workflow wrappers. User-facing
+  invocation uses `$deep-work:<skill-name>`.
 - `agents/` - Worker prompt contracts for research and implementation. Codex
   does not enforce Claude-style per-agent tool frontmatter.
 - `hooks/` - Runtime hook scripts and hook templates. These enforce phases,
@@ -70,7 +74,7 @@ enforcement will be weaker.
 
 ## Workflow Surface
 
-`/deep-work` drives the 6-phase development flow:
+`$deep-work:deep-work-orchestrator` drives the 6-phase development flow:
 
 1. Brainstorm
 2. Research
@@ -79,10 +83,13 @@ enforcement will be weaker.
 5. Test
 6. Integrate
 
-Supporting commands expose narrower operations such as `deep-research`,
-`deep-plan`, `deep-implement`, `deep-test`, `deep-status`,
-`deep-resume`, `deep-report`, `deep-receipt`, `deep-fork`, and
-`deep-integrate`.
+Exposed supporting Codex skills include `$deep-work:deep-research`,
+`$deep-work:deep-plan`, `$deep-work:deep-implement`, `$deep-work:deep-test`,
+`$deep-work:deep-brainstorm`, and `$deep-work:deep-integrate`.
+
+Additional files under `commands/` such as `deep-status`, `deep-resume`,
+`deep-report`, `deep-receipt`, and `deep-fork` are migrated command specs. Wire
+them through `skills/` before documenting them as direct Codex entrypoints.
 
 When changing behavior, update the command entrypoint first, then align skills,
 hooks, README, and tests. Do not assume reference docs drive runtime behavior.

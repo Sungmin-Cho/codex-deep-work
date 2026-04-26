@@ -19,7 +19,7 @@
     "category": "Coding",
     "capabilities": ["Interactive", "Read", "Write"],
     "defaultPrompt": [
-      "/deep-work \"task description\" 로 자동 워크플로우 시작 (multi_agent + codex_hooks feature flags 필요)"
+      "$deep-work:deep-work-orchestrator \"task description\" 로 자동 워크플로우 시작 (multi_agent + codex_hooks feature flags 필요)"
     ]
   }
 }
