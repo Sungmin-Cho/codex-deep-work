@@ -839,7 +839,8 @@ function generateReport(assumptions, sessions, options) {
       lines.push(`  ${change.id}: ${change.from} -> ${change.to}`);
     }
     lines.push('');
-    lines.push('To apply: update enforcement in /deep-work session init or the session state file (.codex/deep-work.{SESSION_ID}.md)');
+    // Phase C 부록 F #8: 사용자 안내에서 raw state path 제거 — /deep-status / /deep-work 명령 안내로 충분.
+    lines.push('To apply: update enforcement via /deep-work session init or modify the active session state through /deep-status helpers.');
     lines.push('(Auto-application is a Phase 2 feature — MVP is report-only)');
   } else {
     lines.push('No changes recommended at this time.');

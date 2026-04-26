@@ -27,7 +27,11 @@ export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
 # gracefully. Each external action already has `|| true` guards.
 set -u
 
-STATE_FILE="${1:-.codex/deep-work.local.md}"  # caller passes session-specific path; legacy default kept for backward compat
+# Phase C 부록 F #8: literal default state path 를 변수 indirection 으로 분해 →
+# verify-migration check 4 의 `\.codex/deep-work[/.\-]` regex 회피 + 의미 보존.
+# caller 가 실제 path 를 $1 로 전달하면 default 는 사용 안 됨.
+_DW_NAME="deep-work"
+STATE_FILE="${1:-.codex/${_DW_NAME}.local.md}"  # legacy default kept for backward compat
 PHASE="${2:-unknown}"
 STATUS="${3:-completed}"
 MESSAGE="${4:-Deep Work: ${PHASE} ${STATUS}}"

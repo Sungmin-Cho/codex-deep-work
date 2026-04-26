@@ -680,7 +680,8 @@ if (require.main === module) {
       process.stderr.write(`INTERNAL_ERROR: ${err.message}\n${err.stack || ''}\n`);
       process.stdout.write(JSON.stringify({
         decision: 'block',
-        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. .codex/deep-work-guard-errors.log 를 확인하세요.'
+        // Phase C 부록 F #8: error 로그 위치 안내를 일반 가이드로 변경 (raw path 노출 제거).
+        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. /deep-status 로 세션 상태를 확인하거나 hook 디버그 로그를 확인하세요.'
       }));
       process.exit(3);
     }

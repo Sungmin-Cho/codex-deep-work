@@ -102,7 +102,8 @@ if [ ${#EXISTING_SCAN_DIRS[@]} -gt 0 ]; then
   RAW=$(grep -rEn '\.codex/deep-work[/.\-]|\.claude/deep-work[/.\-]' "${EXISTING_SCAN_DIRS[@]}" 2>/dev/null \
     | grep -vE 'read_state_file|write_state_file|read_state_file_append|write_state_file_append|hooks/scripts/lib/utils\.sh|hooks/scripts/utils\.sh|tests/fixtures/|state-glob-pattern|\.test\.(js|mjs)' \
     | grep -vE 'TODO\(Phase-C\)' \
-    | grep -vE '^[^:]+:[0-9]+:\s*#|^[^:]+:[0-9]+:\s*//' || true)
+    | grep -vE '^[^:]+:[0-9]+:\s*#|^[^:]+:[0-9]+:\s*//|^[^:]+:[0-9]+:\s*\*' || true)
+  # Phase C 부록 F #8: 코멘트 라인 (`#` shell, `//` JS) + JSDoc `*` continuation 모두 제외 — 문서/주석 false positive 차단.
   if [ -n "$RAW" ]; then
     PHASE_GATE_RAW="${PHASE_GATE:-phase-b}"
     if [ "$PHASE_GATE_RAW" = "phase-d" ] || [ "${VERIFY_STRICT:-}" = "1" ]; then

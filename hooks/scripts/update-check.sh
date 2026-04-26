@@ -56,15 +56,18 @@ find_project_root() {
   echo "$PWD"; return 1
 }
 PROJECT_ROOT="$(find_project_root 2>/dev/null || echo "$PWD")"
-PROFILE_FILE="$PROJECT_ROOT/.codex/deep-work-profile.yaml"
+
+# Phase C 부록 F #8: indirect 변수 할당 → read_state_file 함수 호출. PROFILE_FILE 변수 제거,
+# read_state_file 가 legacy .claude/ fallback + per-file resolution 자동 처리.
+PROFILE_CONTENT="$(read_state_file deep-work-profile.yaml 2>/dev/null || true)"
 
 # Check if updates are disabled
 UPDATE_CHECK="true"
 AUTO_UPDATE="false"
-if [ -f "$PROFILE_FILE" ]; then
-  _UC=$(grep '^update_check:' "$PROFILE_FILE" 2>/dev/null | head -1 | sed 's/update_check:[[:space:]]*//' | tr -d '"'"'" || true)
+if [ -n "$PROFILE_CONTENT" ]; then
+  _UC=$(printf '%s' "$PROFILE_CONTENT" | grep '^update_check:' 2>/dev/null | head -1 | sed 's/update_check:[[:space:]]*//' | tr -d '"'"'" || true)
   [ "$_UC" = "false" ] && UPDATE_CHECK="false"
-  _AU=$(grep '^auto_update:' "$PROFILE_FILE" 2>/dev/null | head -1 | sed 's/auto_update:[[:space:]]*//' | tr -d '"'"'" || true)
+  _AU=$(printf '%s' "$PROFILE_CONTENT" | grep '^auto_update:' 2>/dev/null | head -1 | sed 's/auto_update:[[:space:]]*//' | tr -d '"'"'" || true)
   [ "$_AU" = "true" ] && AUTO_UPDATE="true"
 fi
 

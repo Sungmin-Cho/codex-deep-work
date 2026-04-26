@@ -46,8 +46,8 @@ TASK_DESC="$(read_frontmatter_field "$STATE_FILE" "task_description")"
 # Prevent stale cache on next resume
 SESSION_ID="${DEEP_WORK_SESSION_ID:-}"
 if [[ -z "$SESSION_ID" ]]; then
-  _PTR="$PROJECT_ROOT/.codex/deep-work-current-session"
-  [[ -f "$_PTR" ]] && SESSION_ID="$(tr -d '\n\r' < "$_PTR")"
+  # Phase C 부록 F #8: indirect 변수 할당 → read_state_file (legacy .claude/ fallback 자동).
+  SESSION_ID="$(read_state_file deep-work-current-session 2>/dev/null | tr -d '\n\r' || true)"
 fi
 if [[ -n "$SESSION_ID" ]]; then
   PHASE_CACHE="$PROJECT_ROOT/.codex/.phase-cache-${SESSION_ID}"
@@ -355,29 +355,36 @@ if [[ -n "${DEEP_WORK_SESSION_ID:-}" ]]; then
     ' "$local_registry" "$DEEP_WORK_SESSION_ID" 2>/dev/null || true)
 
     if [[ -n "$fork_parent" ]]; then
-      parent_state="$PROJECT_ROOT/.codex/deep-work.${fork_parent}.md"
-      if [[ -f "$parent_state" ]]; then
-        # Mark this child as idle in parent's fork_children (best-effort)
-        node -e '
-          const fs = require("fs");
-          const stateFile = process.argv[1];
-          const childId = process.argv[2];
-          let content = fs.readFileSync(stateFile, "utf8");
-          // Add status: idle after the matching session_id line
-          const lines = content.split("\n");
-          for (let i = 0; i < lines.length; i++) {
-            if (lines[i].includes("session_id: " + childId)) {
-              // Check if status line already exists
-              if (i + 3 < lines.length && lines[i + 3] && lines[i + 3].includes("status:")) {
-                lines[i + 3] = "    status: idle";
-              } else {
-                lines.splice(i + 3, 0, "    status: idle");
+      # Phase C 부록 F #8: indirect 변수 할당 → read_state_file + write_state_file 함수 호출.
+      # parent_state 의 raw 경로 변수 제거. read_state_file 가 legacy .claude/ fallback 처리.
+      _PARENT_REL="deep-work.${fork_parent}.md"
+      _PARENT_CONTENT="$(read_state_file "$_PARENT_REL" 2>/dev/null || true)"
+      if [[ -n "$_PARENT_CONTENT" ]]; then
+        # Mark this child as idle in parent's fork_children (best-effort).
+        # Node 가 stdin 으로 받아 modify 후 stdout 출력, bash 가 write_state_file 로 저장.
+        _MODIFIED=$(printf '%s' "$_PARENT_CONTENT" | node -e '
+          let content = "";
+          process.stdin.setEncoding("utf8");
+          process.stdin.on("data", c => content += c);
+          process.stdin.on("end", () => {
+            const childId = process.argv[1];
+            const lines = content.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].includes("session_id: " + childId)) {
+                if (i + 3 < lines.length && lines[i + 3] && lines[i + 3].includes("status:")) {
+                  lines[i + 3] = "    status: idle";
+                } else {
+                  lines.splice(i + 3, 0, "    status: idle");
+                }
+                break;
               }
-              break;
             }
-          }
-          fs.writeFileSync(stateFile, lines.join("\n"));
-        ' "$parent_state" "$DEEP_WORK_SESSION_ID" 2>/dev/null || true
+            process.stdout.write(lines.join("\n"));
+          });
+        ' "$DEEP_WORK_SESSION_ID" 2>/dev/null || true)
+        if [[ -n "$_MODIFIED" ]]; then
+          write_state_file "$_PARENT_REL" "$_MODIFIED" 2>/dev/null || true
+        fi
       fi
     fi
   ) 2>/dev/null || true

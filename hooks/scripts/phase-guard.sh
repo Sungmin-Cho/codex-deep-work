@@ -25,8 +25,9 @@ init_deep_work_state
 # ─── Session ID for multi-session ownership checks ──────────
 CURRENT_SESSION_ID="${DEEP_WORK_SESSION_ID:-}"
 if [[ -z "$CURRENT_SESSION_ID" ]]; then
-  _PTR="$PROJECT_ROOT/.codex/deep-work-current-session"
-  [[ -f "$_PTR" ]] && CURRENT_SESSION_ID="$(tr -d '\n\r' < "$_PTR")"
+  # Phase C 부록 F #8: indirect 변수 할당 → read_state_file 함수 호출.
+  # legacy .claude/ fallback 자동 처리 + per-file resolution.
+  CURRENT_SESSION_ID="$(read_state_file deep-work-current-session 2>/dev/null | tr -d '\n\r' || true)"
 fi
 
 # Helper: block with file ownership message and exit
@@ -765,9 +766,11 @@ NODE_INPUT=$(printf '%s' "$TOOL_INPUT" | node -e "
 #   exit 0   → success; inspect decision on stdout (allow / warn / block)
 #   exit 3   → internal Node error; stdout has a 내부 검증 오류 block message
 #   other    → subprocess crash / OOM / timeout; emit generic block
-NODE_ERR_LOG="$PROJECT_ROOT/.codex/deep-work-guard-errors.log"
+# Phase C 부록 F #8: stderr redirect 를 process substitution + write_state_file_append 로
+# 변환 (file-tracker.sh:235 와 동일 패턴). raw NODE_ERR_LOG 변수 제거.
 set +e
-NODE_RESULT=$(echo "$NODE_INPUT" | node "$SCRIPT_DIR/phase-guard-core.js" 2>>"$NODE_ERR_LOG")
+NODE_RESULT=$(echo "$NODE_INPUT" | node "$SCRIPT_DIR/phase-guard-core.js" \
+  2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done))
 NODE_RC=$?
 set -e
 
