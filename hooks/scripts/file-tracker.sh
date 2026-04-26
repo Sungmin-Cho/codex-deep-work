@@ -28,7 +28,7 @@ STATE_FILE_NORM="$(normalize_path "$STATE_FILE")"
 TOOL_INPUT="$(cat)"
 TOOL_NAME="${CLAUDE_TOOL_USE_TOOL_NAME:-${CLAUDE_TOOL_NAME:-}}"
 
-_HOOK_INPUT_CACHE="$PROJECT_ROOT/.claude/.hook-tool-input.${PPID}"
+_HOOK_INPUT_CACHE="$PROJECT_ROOT/.codex/.hook-tool-input.${PPID}"
 mkdir -p "$(dirname "$_HOOK_INPUT_CACHE")" 2>/dev/null
 _HOOK_INPUT_TMP="${_HOOK_INPUT_CACHE}.tmp.$$"
 # Atomic write: truncate+write is non-atomic and a concurrent reader could

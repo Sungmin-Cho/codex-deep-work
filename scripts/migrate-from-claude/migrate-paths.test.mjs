@@ -29,6 +29,28 @@ describe('migrate-paths literal_replace', () => {
     assert.ok(out.includes('AGENTS.md'));
     assert.ok(!out.includes('CLAUDE.md'));
   });
+
+  // 7차 W4: vendor hooks 의 plugin cache path 변환 (state 가 아님).
+  it('replaces .claude/.hook-tool-input with .codex/.hook-tool-input (7차 W4)', () => {
+    const src = `_HOOK_INPUT_CACHE="$PROJECT_ROOT/.claude/.hook-tool-input.\${PPID}"`;
+    const out = applyLiteralReplace(src);
+    assert.ok(out.includes('.codex/.hook-tool-input.${PPID}'));
+    assert.ok(!out.includes('.claude/.hook-tool-input'));
+  });
+
+  it('replaces .claude/.phase-cache- with .codex/.phase-cache- (7차 W4)', () => {
+    const src = `PHASE_CACHE="$PROJECT_ROOT/.claude/.phase-cache-\${SESSION_ID}"`;
+    const out = applyLiteralReplace(src);
+    assert.ok(out.includes('.codex/.phase-cache-${SESSION_ID}'));
+    assert.ok(!out.includes('.claude/.phase-cache-'));
+  });
+
+  it('replaces $PROJECT_ROOT/.claude" → $PROJECT_ROOT/.codex" for bare CACHE_DIR (7차 W4)', () => {
+    const src = `CACHE_DIR="$PROJECT_ROOT/.claude"\nfind "$PROJECT_ROOT/.claude" -maxdepth 1`;
+    const out = applyLiteralReplace(src);
+    assert.ok(out.includes('CACHE_DIR="$PROJECT_ROOT/.codex"'));
+    assert.ok(out.includes('find "$PROJECT_ROOT/.codex"'));
+  });
 });
 
 describe('migrate-paths isStateLiteral (forbidden literal_replace targets)', () => {
@@ -40,8 +62,14 @@ describe('migrate-paths isStateLiteral (forbidden literal_replace targets)', () 
     assert.equal(isStateLiteral(".claude/deep-work.abc123.md"), true);
   });
 
-  it('flags .claude/.hook-tool-input.* as state', () => {
-    assert.equal(isStateLiteral(".claude/.hook-tool-input.json"), true);
+  // 7차 W4: `.claude/.hook-tool-input` 는 state 가 아닌 plugin cache — literal_replace 로 처리.
+  it('does NOT flag .claude/.hook-tool-input.* as state (plugin cache, 7차 W4)', () => {
+    assert.equal(isStateLiteral(".claude/.hook-tool-input.json"), false);
+  });
+
+  // 7차 W4: `.claude/.phase-cache-` 도 마찬가지로 plugin cache.
+  it('does NOT flag .claude/.phase-cache-* as state (plugin cache, 7차 W4)', () => {
+    assert.equal(isStateLiteral(".claude/.phase-cache-abc"), false);
   });
 
   it('does NOT flag ~/.claude/plugins/cache as state (non-state HOME path)', () => {

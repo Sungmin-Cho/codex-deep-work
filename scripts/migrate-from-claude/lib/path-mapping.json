@@ -2,12 +2,15 @@
   "version": "0.1.0",
   "comment": "경로 + 함수 API 변환 (C3-A1 + C-PA1 교정 — state 경로는 literal_replace 금지, 함수 API 만 사용).",
   "literal_replace": {
-    "comment": "non-state 리터럴만 (URL/이름/파일명/plugin cache HOME 경로). state 경로(.claude/deep-work/, .claude/.hook-tool-input.* 등) 는 절대 여기 추가 금지.",
+    "comment": "non-state 리터럴만 (URL/이름/파일명/plugin cache HOME 경로 + non-state hook cache 경로). state 경로(.claude/deep-work/, .claude/deep-work-{current-session,sessions,profile,guard-errors} 등) 는 절대 여기 추가 금지.",
     "claude-deep-work": "codex-deep-work",
     "claude-deep-suite": "codex-deep-suite",
     "CLAUDE.md": "AGENTS.md",
     "~/.claude/plugins/cache": "~/.codex/plugins/cache",
-    "$HOME/.claude/plugins/cache": "$HOME/.codex/plugins/cache"
+    "$HOME/.claude/plugins/cache": "$HOME/.codex/plugins/cache",
+    ".claude/.hook-tool-input": ".codex/.hook-tool-input",
+    ".claude/.phase-cache-": ".codex/.phase-cache-",
+    "$PROJECT_ROOT/.claude\"": "$PROJECT_ROOT/.codex\""
   },
   "plugin_root_replace": {
     "comment": "OI-7 + Plan-Patch-16 RESOLVED — plugin cache stable path. ${PLUGIN_SHA} 는 A' First-Run Install Pattern 의 install_hooks_template 단계에서 사용자 환경의 marketplace.json 에서 sha 를 읽어 substitute. hooks-template.json 은 placeholder 보존 (install 가이드용), hooks/hooks.json 은 dev_fallback 적용 (개발 시점 직접 실행 가능).",

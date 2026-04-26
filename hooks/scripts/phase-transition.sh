@@ -41,7 +41,7 @@ init_deep_work_state
 # 혹시 미래 버전에서 설정될 가능성을 고려해 우선 확인한다.
 TOOL_INPUT="${CLAUDE_TOOL_USE_INPUT:-${CLAUDE_TOOL_INPUT:-}}"
 if [[ -z "$TOOL_INPUT" ]]; then
-  _HOOK_INPUT_CACHE="$PROJECT_ROOT/.claude/.hook-tool-input.${PPID}"
+  _HOOK_INPUT_CACHE="$PROJECT_ROOT/.codex/.hook-tool-input.${PPID}"
   [[ -f "$_HOOK_INPUT_CACHE" ]] && TOOL_INPUT="$(cat "$_HOOK_INPUT_CACHE" 2>/dev/null || printf '')"
 fi
 [[ -z "$TOOL_INPUT" ]] && exit 0
@@ -66,7 +66,7 @@ NEW_PHASE="$(read_frontmatter_field "$FILE_PATH" "current_phase")"
 [[ -z "$NEW_PHASE" ]] && exit 0
 
 # ─── 4. Cache 비교 ─────────────────────────────────────────
-CACHE_DIR="$PROJECT_ROOT/.claude"
+CACHE_DIR="$PROJECT_ROOT/.codex"
 CACHE_FILE="$CACHE_DIR/.phase-cache-${SESSION_ID}"
 OLD_PHASE=""
 [[ -f "$CACHE_FILE" ]] && OLD_PHASE="$(cat "$CACHE_FILE")"

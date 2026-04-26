@@ -13,7 +13,9 @@ describe('file-tracker.sh v6.2.4 post-review: cache happens BEFORE phase check',
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ft-c3a-'));
+    // 7차 W4: cache는 .codex/, legacy state file 은 .claude/ (read_state_file fallback 검증).
     fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
@@ -39,10 +41,10 @@ describe('file-tracker.sh v6.2.4 post-review: cache happens BEFORE phase check',
       });
       assert.equal(result.status, 0, `hook failed: ${result.stderr}`);
 
-      // Cache file should be written (key = this process's pid, which is the bash subprocess's PPID)
-      const cacheFile = path.join(tmpDir, '.claude', `.hook-tool-input.${process.pid}`);
+      // 7차 W4: file-tracker.sh 가 .codex/.hook-tool-input.${PPID} 에 쓴다 (이전 .claude/).
+      const cacheFile = path.join(tmpDir, '.codex', `.hook-tool-input.${process.pid}`);
       assert.ok(fs.existsSync(cacheFile),
-        `cache file missing for phase=${phase}. dir contents: ${fs.readdirSync(path.join(tmpDir, '.claude'))}`);
+        `cache file missing for phase=${phase}. dir contents: ${fs.readdirSync(path.join(tmpDir, '.codex'))}`);
       assert.equal(fs.readFileSync(cacheFile, 'utf8'), toolInput);
     });
   }

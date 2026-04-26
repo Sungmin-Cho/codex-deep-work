@@ -14,7 +14,8 @@ const PATH_MAPPING = JSON.parse(fs.readFileSync(path.join(__dirname, 'lib/path-m
 const STATE_LITERAL_PATTERNS = [
   /\.claude\/deep-work\//,
   /\.claude\/deep-work\.[A-Za-z0-9-]+\.md/,
-  /\.claude\/\.hook-tool-input/,
+  // 7차 W4: `.claude/.hook-tool-input` 와 `.claude/.phase-cache-` 는 state 파일이 아닌 plugin cache.
+  // literal_replace 의 명시 매핑 (`.claude/.hook-tool-input` → `.codex/.hook-tool-input`)으로 처리됨.
   /\.claude\/deep-work-current-session/,
   /\.claude\/deep-work-sessions/,
   /\.claude\/deep-work-guard-errors/,
