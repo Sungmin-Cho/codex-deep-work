@@ -246,6 +246,27 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
+## ambiguous state path TODO 마커 (부록 F #7) — **RESOLVED (Phase C, 2026-04-26, no-op)**
+
+- spec / handoff doc: "Plan-Patch-5 의 applyStatePathReplace 가 분류 못 한
+  quoted bare path 사이트의 read/write 결정"
+
+- 검증:
+  - `migrate-hooks.mjs:242` 의 ambiguous 마커 emission 인프라 정상 (`# TODO(Phase-C):
+    ambiguous .claude/deep-work* path access at vendor lines X,Y...` 자동 prepend)
+  - 직접 테스트 (fake vendor with bare quoted path) — 마커 emission 동작 확인 ✓
+  - 그러나 실제 마이그레이션된 hooks/sensors/health/ 파일에 **0 마커** 잔존
+  - 즉 Phase B 의 Plan-Patch-5 (read/write/ambiguous 3-way 분류) 가 v6.4.0
+    vendor 의 모든 quoted bare path 사이트를 정확히 분류 → ambiguous 분기
+    실제로 fire 안 함
+
+- 결론: 부록 F #7 은 verification only — 추가 작업 불필요. 마커 emission
+  인프라는 미래 vendor 변경 (예: v6.5.0+) 시 신규 ambiguous 패턴 발생 대비.
+
+- 검증: ALL CHECKS PASS, 베이스라인 그대로.
+
+---
+
 ## assumptions.json receipt 검증 강화 (부록 F #4) — **RESOLVED (Phase C, 2026-04-26)**
 
 - spec line 484: "assumptions.json receipt 검증 룰 강화 — `tools_used` 필드 +
