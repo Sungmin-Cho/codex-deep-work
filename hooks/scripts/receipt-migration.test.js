@@ -39,8 +39,31 @@ describe('migrateReceipt', () => {
     const result = migrateReceipt(v0);
     for (const [key, val] of Object.entries(V1_DEFAULTS)) {
       if (key === 'schema_version') continue;
-      assert.equal(result.receipt[key], val, `Missing default for ${key}`);
+      // Phase C 부록 F #4: tools_used 는 array — assert.equal 은 ref 비교라
+      // shallow spread 결과 같은 ref → 통과 (단순 체크). deepEqual 로 명시.
+      if (Array.isArray(val)) {
+        assert.deepEqual(result.receipt[key], val, `Missing default for ${key}`);
+      } else {
+        assert.equal(result.receipt[key], val, `Missing default for ${key}`);
+      }
     }
+  });
+
+  // Phase C 부록 F #4: post-hoc tool whitelist 검증용 신규 필드.
+  it('migrates v0 receipt with tools_used = [] default (Phase C 부록 F #4)', () => {
+    const v0 = { slice_id: 'SLICE-005', status: 'complete' };
+    const result = migrateReceipt(v0);
+    assert.ok(result.migrated);
+    assert.deepEqual(result.receipt.tools_used, [],
+      'tools_used should default to empty array');
+  });
+
+  it('preserves existing tools_used during migration', () => {
+    const v0 = { slice_id: 'SLICE-006', tools_used: ['Read', 'Write', 'Edit'] };
+    const result = migrateReceipt(v0);
+    assert.ok(result.migrated);
+    assert.deepEqual(result.receipt.tools_used, ['Read', 'Write', 'Edit'],
+      'pre-existing tools_used should be preserved (spread order: V1_DEFAULTS → receipt)');
   });
 });
 

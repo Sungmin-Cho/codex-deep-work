@@ -143,18 +143,21 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
 
   # receipt 파일이 없으면 초기 생성
   if [[ ! -f "$RECEIPT_FILE" ]]; then
+    # Phase C 부록 F #4: tools_used + model_used 필드 초기화 (post-hoc whitelist 검증).
+    # MODEL 은 parse_hook_stdin 가 envelope `.model` 에서 추출 (Codex hook stdin 가정).
     node -e "
       const fs = require('fs');
       const args = process.argv.filter(a => a !== '[eval]');
-      const sliceId = args[1], ts = args[2], receiptPath = args[3];
+      const sliceId = args[1], ts = args[2], receiptPath = args[3], modelUsed = args[4] || 'unknown';
       const data = {
         slice_id: sliceId, status: 'in_progress', tdd_state: 'PENDING',
         tdd: {}, changes: { files_modified: [], lines_added: 0, lines_removed: 0 },
         verification: {}, spec_compliance: {}, code_review: {}, debug: null,
+        tools_used: [], model_used: modelUsed,
         timestamp: ts
       };
       fs.writeFileSync(receiptPath, JSON.stringify(data, null, 2));
-    " "$ACTIVE_SLICE" "$TIMESTAMP" "$RECEIPT_FILE" 2>/dev/null || true
+    " "$ACTIVE_SLICE" "$TIMESTAMP" "$RECEIPT_FILE" "${MODEL:-unknown}" 2>/dev/null || true
   fi
 
   # 파일 변경을 receipt의 changes.files_modified에 추가 (best-effort).
@@ -171,12 +174,14 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
     if _acquire_lock "$_RECEIPT_LOCK" 40 0.05; then
       node -e '
         const fs = require("fs");
-        const [, receiptFile, pendingFile, filePath, ts] = process.argv;
+        const [, receiptFile, pendingFile, filePath, ts, toolName] = process.argv;
         const drainingFile = pendingFile + ".draining." + process.pid;
         try {
           const r = JSON.parse(fs.readFileSync(receiptFile, "utf8"));
           if (!r.changes) r.changes = { files_modified: [] };
           if (!r.changes.files_modified) r.changes.files_modified = [];
+          // Phase C 부록 F #4: tools_used dedup-append (post-hoc whitelist 검증).
+          if (!Array.isArray(r.tools_used)) r.tools_used = [];
 
           // Crash-safe drain: rename pending to .draining.<pid> BEFORE reading.
           // If we crash between rename and receipt write, the .draining file
@@ -215,6 +220,8 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
 
           // Add current change.
           if (!r.changes.files_modified.includes(filePath)) r.changes.files_modified.push(filePath);
+          // Phase C 부록 F #4: dedup-append invoked tool name.
+          if (toolName && !r.tools_used.includes(toolName)) r.tools_used.push(toolName);
           r.timestamp = ts;
 
           // Atomic canonical write.
@@ -229,7 +236,7 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
           try { fs.unlinkSync(receiptFile + ".tmp." + process.pid); } catch(_) {}
           // NOTE: do not delete .draining on error — it is recoverable.
         }
-      ' "$RECEIPT_FILE" "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
+      ' "$RECEIPT_FILE" "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" "$TOOL_NAME" 2> >(while IFS= read -r line; do write_state_file_append "deep-work-guard-errors.log" "$line"; done) || true
       _release_lock "$_RECEIPT_LOCK"
     else
       # Lock timeout (very rare after retry bump) — queue for the next

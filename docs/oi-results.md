@@ -246,6 +246,38 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
+## assumptions.json receipt 검증 강화 (부록 F #4) — **RESOLVED (Phase C, 2026-04-26)**
+
+- spec line 484: "assumptions.json receipt 검증 룰 강화 — `tools_used` 필드 +
+  `model_used` 필드 추가, agent 별 화이트리스트 위반을 사후 신호화."
+
+- 적용:
+  - `assumptions.json` 신규 생성 (vendor v6.4.0 의 6개 assumption 마이그레이션 +
+    7번째 `post_hoc_tool_whitelist_enforcement` 추가). 이전엔 codex-deep-work
+    레포에 부재 (vendor 만 보유).
+  - `hooks/scripts/receipt-migration.js` V1_DEFAULTS 에 `tools_used: []` 추가.
+    `model_used: 'unknown'` 은 이미 존재.
+  - `hooks/scripts/file-tracker.sh` receipt 초기 생성에 `tools_used: []` +
+    `model_used: ${MODEL:-unknown}` 필드 포함. parse_hook_stdin 가 envelope
+    `.model` 에서 추출한 `MODEL` env 활용.
+  - `hooks/scripts/file-tracker.sh` 갱신 단계에 `tools_used` dedup-append 로직
+    추가 — TOOL_NAME 인자 추가 (lock 보호된 update 블록 안에서).
+  - `hooks/scripts/receipt-migration.test.js` 에 2 신규 테스트 (default value +
+    pre-existing 보존).
+
+- 후속 (Phase D 또는 별도 commit):
+  - `hooks/scripts/verify-receipt-core.js` 가 `tools_used` 배열을 agent 의
+    자연어 tools 가이드와 대조하는 actual validation 로직. 현재는 receipt
+    schema 갖추는 단계만 — validation 의 정확한 알고리즘 (regex / NLP / agents
+    yaml lookup) 은 별도 설계 필요.
+  - agent .md 본문의 자연어 tools 가이드 표준화 ("You may only use Read/Grep
+    tools — do not run Bash") 가 verify 알고리즘의 input.
+
+- 검증: ALL CHECKS PASS, 1314/1178/136 (1단계 baseline 1312 → +2 신규 receipt
+  tests + 0 회귀).
+
+---
+
 ## Plan-Patch-7 Phase-C TODO (부록 F #6) — **RESOLVED (Phase C, 2026-04-26)**
 
 - migrate-hooks.mjs `injectStdinParser` 가 vendor 의 pre-existing `$(cat)` 가

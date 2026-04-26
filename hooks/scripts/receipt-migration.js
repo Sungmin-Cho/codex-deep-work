@@ -30,6 +30,10 @@ const V1_DEFAULTS = {
   worktree_branch: '',
   git_before: '',
   git_after: '',
+  // Phase C 부록 F #4: post-hoc tool whitelist enforcement.
+  // file-tracker.sh 가 PostToolUse hook 마다 invoked TOOL_NAME 을 dedup-append.
+  // agent 의 자연어 tools 가이드 위반을 verify-receipt 단계에서 사후 신호화.
+  tools_used: [],
 };
 
 function migrateReceipt(receipt) {
