@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultTargetRoot, defaultVendorRoot } from './lib/default-paths.mjs';
-import { isMigrated, MIGRATION_MARKER } from './lib/transformers.mjs';
+import { isMigrated, withMarker } from './lib/transformers.mjs';
 import { applyLiteralReplace } from './migrate-paths.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -122,9 +122,7 @@ function processSkillFile(srcFile, dstFile, skillName, force) {
     return { skipped: true };
   }
   let transformed = transformSkillBody(content, skillName);
-  if (!isMigrated(transformed)) {
-    transformed = MIGRATION_MARKER + '\n' + transformed;
-  }
+  transformed = withMarker(transformed, 'md');
   fs.mkdirSync(path.dirname(dstFile), { recursive: true });
   fs.writeFileSync(dstFile, transformed);
   return { written: true };

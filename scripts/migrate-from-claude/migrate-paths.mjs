@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defaultTargetRoot, defaultVendorRoot } from './lib/default-paths.mjs';
-import { withMarker, isMigrated, MIGRATION_MARKER } from './lib/transformers.mjs';
+import { withMarker, isMigrated } from './lib/transformers.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PATH_MAPPING = JSON.parse(fs.readFileSync(path.join(__dirname, 'lib/path-mapping.json'), 'utf8'));
@@ -70,14 +70,7 @@ function processFile(srcPath, dstPath, ext, force) {
   }
   let transformed = applyLiteralReplace(content);
   if (ext !== '.json' && COMMENT_PREFIX[ext]) {
-    const prefix = COMMENT_PREFIX[ext];
-    if (!isMigrated(transformed)) {
-      if (prefix === '<!--') {
-        transformed = MIGRATION_MARKER + '\n' + transformed;
-      } else {
-        transformed = `${prefix} migrated-by: codex-migrate v0.1\n` + transformed;
-      }
-    }
+    transformed = withMarker(transformed, ext.slice(1));
   }
   fs.mkdirSync(path.dirname(dstPath), { recursive: true });
   fs.writeFileSync(dstPath, transformed);

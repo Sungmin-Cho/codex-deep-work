@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-brainstorm
 description: "Phase 0 — Brainstorm: explore why before how (skip-able)"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 > [!IMPORTANT]
 > **Skill body echo 금지**

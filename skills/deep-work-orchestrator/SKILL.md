@@ -1,8 +1,8 @@
-<!-- migrated-by: codex-migrate v0.1 -->
 ---
 name: deep-work-orchestrator
 description: "Evidence-Driven Development — session initialization + auto-flow orchestration"
 ---
+<!-- migrated-by: codex-migrate v0.1 -->
 
 ## First-Run Hook Install Check (OI-11)
 
