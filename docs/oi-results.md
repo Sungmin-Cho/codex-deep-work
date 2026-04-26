@@ -1,6 +1,6 @@
 # OI Resolution Results — Phase A
 
-각 OI 의 검증/실험 결과를 누적 기록. Phase A step 6 (Task 6) 에서 spec 본문 (`~/Dev/codex-deep-suite/docs/superpowers/specs/`) 갱신 시 이 파일이 reference.
+각 OI 의 검증/실험 결과를 누적 기록. Phase A step 6 (Task 6) 에서 spec 본문 (`~/Dev/codex-plugins/codex-deep-suite/docs/superpowers/specs/`) 갱신 시 이 파일이 reference.
 
 **측정일**: 2026-04-25
 **측정자**: sungmin (with Claude Code, Opus 4.7)

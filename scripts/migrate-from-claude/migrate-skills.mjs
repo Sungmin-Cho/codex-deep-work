@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defaultTargetRoot, defaultVendorRoot } from './lib/default-paths.mjs';
 import { isMigrated, MIGRATION_MARKER } from './lib/transformers.mjs';
 import { applyLiteralReplace } from './migrate-paths.mjs';
 
@@ -131,8 +132,8 @@ function processSkillFile(srcFile, dstFile, skillName, force) {
 
 // CLI entry
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const vendor = process.argv[2] || `${process.env.HOME}/Dev/codex-deep-work/vendor/claude-deep-work-v6.4.0`;
-  const target = process.argv[3] || `${process.env.HOME}/Dev/codex-deep-work`;
+  const vendor = process.argv[2] || defaultVendorRoot();
+  const target = process.argv[3] || defaultTargetRoot();
   const force = process.argv.includes('--force');
 
   const skillsRoot = path.join(vendor, 'skills');

@@ -4,6 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { defaultTargetRoot } from './lib/default-paths.mjs';
 
 const TOOL_MAPPING_TABLE = `| CC tool | Codex 등가 | 변환 방식 |
 |---|---|---|
@@ -69,7 +70,7 @@ function patchPrerequisites(src) {
 
 // CLI
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const target = process.argv[2] || `${process.env.HOME}/Dev/codex-deep-work`;
+  const target = process.argv[2] || defaultTargetRoot();
   const agentsMd = path.join(target, 'AGENTS.md');
   if (!fs.existsSync(agentsMd)) {
     console.error(`migrate-context-doc: ${agentsMd} not found`);

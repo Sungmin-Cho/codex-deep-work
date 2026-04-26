@@ -4,6 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { defaultTargetRoot, defaultVendorRoot } from './lib/default-paths.mjs';
 
 const RENAMES = {
   '.claude-plugin/': '.codex-plugin/',
@@ -68,8 +69,8 @@ export function applyMergeStrategy(existing, transformed) {
 
 // CLI entry
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const vendor = process.argv[2] || `${process.env.HOME}/Dev/codex-deep-work/vendor/claude-deep-work-v6.4.0`;
-  const target = process.argv[3] || `${process.env.HOME}/Dev/codex-deep-work`;
+  const vendor = process.argv[2] || defaultVendorRoot();
+  const target = process.argv[3] || defaultTargetRoot();
   const force = process.argv.includes('--force');
 
   const ccPkgPath = path.join(vendor, 'package.json');

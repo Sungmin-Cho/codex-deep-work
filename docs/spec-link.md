@@ -2,7 +2,7 @@
 
 마이그레이션 설계 spec 은 codex-deep-suite 레포에 위치:
 
-- File: `~/Dev/codex-deep-suite/docs/superpowers/specs/2026-04-25-codex-deep-work-migration-design.md`
+- File: `~/Dev/codex-plugins/codex-deep-suite/docs/superpowers/specs/2026-04-25-codex-deep-work-migration-design.md`
 - Latest: **v0.5** (Phase A 결과 반영, commit `dad3762`)
 
 ## Phase A 완료 — Phase B 진입 가능 상태
