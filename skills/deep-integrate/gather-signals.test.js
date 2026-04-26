@@ -53,6 +53,29 @@ describe('gather-signals.sh', () => {
   beforeEach(setup);
   afterEach(cleanup);
 
+  it('does not use process substitution in Codex runtime script', () => {
+    const body = fs.readFileSync(SCRIPT, 'utf8');
+    assert.doesNotMatch(body, /<\s*<\(/);
+    assert.doesNotMatch(body, />\s*>\(/);
+  });
+
+  it('reads primary .codex state without legacy import', () => {
+    const sid = 's-codex-primary';
+    fs.mkdirSync(path.join(projectRoot, '.codex'), { recursive: true });
+    fs.writeFileSync(path.join(projectRoot, '.codex', 'deep-work-current-session'), sid);
+    fs.writeFileSync(
+      path.join(projectRoot, '.codex', `deep-work.${sid}.md`),
+      '---\nsession_id: s-codex-primary\nwork_dir: .deep-work/w-codex\ntask_description: "codex primary"\ncurrent_phase: test\ntest_completed_at: "2026-04-18T14:30:00Z"\n---\n'
+    );
+    fs.mkdirSync(path.join(projectRoot, '.deep-work', 'w-codex'), { recursive: true });
+
+    const env = run();
+    assert.equal(env.session.id, sid);
+    assert.equal(env.session.work_dir, '.deep-work/w-codex');
+    assert.equal(env.session.goal, 'codex primary');
+    assert.deepEqual(env.session.phases_completed, ['test']);
+  });
+
   it('all artifacts missing → placeholder objects with null fields (not whole null), session populated', () => {
     writeStateFile('s-abc123', '.deep-work/20260418-142300-test', 'JWT 인증', {
       brainstorm_completed_at: '2026-04-18T13:55:00Z',

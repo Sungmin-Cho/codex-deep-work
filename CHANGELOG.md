@@ -7,7 +7,8 @@
 - Removed active hook runtime dependence on process substitution (`/dev/fd`) in `file-tracker.sh`, `phase-guard.sh`, and `session-end.sh`; stderr is now captured through temp files and appended via the `.codex/` state API.
 - Updated `file-tracker` marker-flip tests to use Codex envelope stdin and `.codex/` write-target state files, matching the Phase C legacy import contract.
 - Lowered `tests/.expected-fail-count` from 136 to 133 after the deterministic hook portability failures were fixed.
-- Restored deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) and v6.4.0 integration fixtures, removed invalid HTML migration markers from JSON fixtures/schemas, and taught the migration marker helper to leave `.json` content unmodified. Test baseline is now 1320 with expected fails lowered to 97.
+- Restored deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) and v6.4.0 integration fixtures, removed invalid HTML migration markers from JSON fixtures/schemas, and taught the migration marker helper to leave `.json` content unmodified. Test baseline is now 1322 with expected fails lowered to 97.
+- Review follow-up: removed the remaining `gather-signals.sh` process substitutions, added coverage for `.codex` primary-state reads without legacy import, and renamed negative fixture headings to match their expected failure modes.
 
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 

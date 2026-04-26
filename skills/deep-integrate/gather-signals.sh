@@ -135,14 +135,21 @@ else
         files_changed="$(git diff --name-only "$base"..HEAD 2>/dev/null | wc -l | tr -d ' ')"
         read -r ins dels <<<"$(git diff --numstat "$base"..HEAD 2>/dev/null | awk '{i+=$1; d+=$2} END {printf "%d %d", i+0, d+0}')"
         cat_src=0; cat_test=0; cat_docs=0; cat_config=0
-        while IFS= read -r f; do
-          case "$f" in
-            *test*|*spec*) ((cat_test++)) ;;
-            *.md|docs/*|*README*|*CHANGELOG*) ((cat_docs++)) ;;
-            *.json|*.yaml|*.yml|*.toml|*.cfg|*.ini) ((cat_config++)) ;;
-            *) ((cat_src++)) ;;
-          esac
-        done < <(git diff --name-only "$base"..HEAD 2>/dev/null)
+        changed_files_tmp="$(mktemp "${TMPDIR:-/tmp}/gather-signals-files.XXXXXX" 2>/dev/null || true)"
+        if [[ -n "$changed_files_tmp" ]]; then
+          git diff --name-only "$base"..HEAD > "$changed_files_tmp" 2>/dev/null || true
+          while IFS= read -r f; do
+            case "$f" in
+              *test*|*spec*) ((cat_test++)) ;;
+              *.md|docs/*|*README*|*CHANGELOG*) ((cat_docs++)) ;;
+              *.json|*.yaml|*.yml|*.toml|*.cfg|*.ini) ((cat_config++)) ;;
+              *) ((cat_src++)) ;;
+            esac
+          done < "$changed_files_tmp"
+          rm -f "$changed_files_tmp" 2>/dev/null || true
+        else
+          warn "could not create temp file for changed file categories — categories default to zero"
+        fi
         CHANGES_JSON=$(jq -n \
           --argjson fc "$files_changed" --argjson ins "$ins" --argjson dels "$dels" \
           --argjson src "$cat_src" --argjson t "$cat_test" \
@@ -209,14 +216,18 @@ if printf '%s' "$PLUGINS_JSON" | jq -e '.installed[]? | select(.=="deep-review")
   if [[ "$rf" != "null" ]]; then
     # I4 fix: total + top_cat in one defensive jq pass (non-array .findings safe)
     # v6.3.0 review W5: top_category는 최빈 category여야 함 (a[0]는 sorted 가정에 의존)
-    read -r total top_cat < <(
+    rf_summary="$(
       printf '%s' "$rf" | jq -r '
         def a: (.findings // []);
         (a | length) as $n |
         (a | map(.category // empty) | group_by(.) | max_by(length) | .[0] // "") as $c |
-        "\($n) \($c)"
-      ' 2>/dev/null || echo "0 "
-    )
+        "\($n)\t\($c)"
+      ' 2>/dev/null || printf '0\t'
+    )"
+    total="${rf_summary%%$'\t'*}"
+    top_cat="${rf_summary#*$'\t'}"
+    if [[ "$top_cat" == "$rf_summary" ]]; then top_cat=""; fi
+    if [[ -z "$total" ]]; then total=0; fi
     # C2 fix: build rf_sum with jq --arg to handle embedded quotes/backslashes
     if [[ -n "$top_cat" ]]; then
       rf_sum=$(jq -n --argjson t "$total" --arg c "$top_cat" '{total:$t, top_category:$c}')

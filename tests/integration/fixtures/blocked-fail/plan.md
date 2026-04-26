@@ -1,4 +1,4 @@
-# Passing Plan
+# Blocked Fail Plan
 
 ## Overview
 Integration fixture exercising the full verify-delegated-receipt pipeline

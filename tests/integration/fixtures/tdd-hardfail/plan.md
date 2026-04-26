@@ -1,4 +1,4 @@
-# Passing Plan
+# TDD Hardfail Plan
 
 ## Overview
 Integration fixture exercising the full verify-delegated-receipt pipeline
