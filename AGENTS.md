@@ -1,11 +1,35 @@
-# AGENTS.md — codex-deep-work
+# AGENTS.md - codex-deep-work
 
-> Codex CLI 가 본 plugin 을 자동 로드할 때 참조하는 컨텍스트. **B-α scope** —
-> 자세한 제약 사항은 아래 Semantic Losses 섹션 참조.
+This repository contains the Codex CLI port of **claude-deep-work v6.4.0**.
+It packages the Evidence-Driven Development Protocol as a Codex plugin with
+commands, skills, hooks, sensors, health checks, and migration tooling.
 
-## Prerequisites
+## Quick Orientation
 
-`~/.codex/config.toml` 에 두 feature flag 모두 활성화 필요:
+- Plugin name: `deep-work`
+- Package repo: `Sungmin-Cho/codex-deep-work`
+- Suite marketplace repo: `Sungmin-Cho/codex-deep-suite`
+- Plugin manifest: `.codex-plugin/plugin.json`
+- Main entrypoint: `/deep-work "task description"`
+- Test command: `npm test`
+- Current migration scope: **B-alpha**. The port preserves the user-facing
+  workflow where Codex has equivalent primitives, and documents weaker areas
+  where Codex does not yet expose the same enforcement surface as Claude Code.
+
+## Contents
+
+1. Runtime Requirements
+2. Repository Map
+3. Workflow Surface
+4. Hook And State Model
+5. B-alpha Compatibility Notes
+6. Migration Tooling
+7. Verification Checklist
+8. Maintenance Rules
+
+## Runtime Requirements
+
+The plugin expects these Codex feature flags in `~/.codex/config.toml`:
 
 ```toml
 [features]
@@ -13,72 +37,125 @@ multi_agent = true
 codex_hooks = true
 ```
 
-- `multi_agent` 미활성: parallel `spawn_agent` 호출 (deep-research / deep-implement
-  의 worker 병렬 분기) 가 sequential 로 강등되거나 실패.
-- `codex_hooks` 미활성: hook 스크립트 (`phase-guard`, `file-tracker`, sensors) 가
-  inert — TDD enforcement 와 receipt 수집이 자연어 가이드 수준으로만 동작.
+- `multi_agent` enables parallel `spawn_agent` dispatch for research and
+  implementation workers.
+- `codex_hooks` enables phase guards, file tracking, sensor triggering, and
+  receipt collection.
+- Without these flags, the workflow degrades to natural-language guidance and
+  post-hoc validation.
 
-## First-Run Install (A')
+On first use, `/deep-work` should prompt to install hook definitions from
+`hooks/hooks-template.json` into the user's target repository at
+`<repo>/.codex/hooks.json`. Declining the prompt is valid, but hook-based
+enforcement will be weaker.
 
-deep-work plugin 의 hook 정의는 `<plugin-cache>/hooks-template.json` 으로 동봉.
-plugin install 후 첫 `/deep-work` 실행 시 다음 절차로 사용자 repo 에 hook 설치:
+## Repository Map
 
-1. skill 본문이 사용자 repo 의 `<repo>/.codex/hooks.json` 부재를 검사한다.
-2. 부재 시 plugin cache 의 hook 정의를 표시하고 "설치하시겠습니까?" prompt 를 띄운다.
-3. 승인 시 `<repo>/.codex/hooks.json` 으로 merge install 한다.
-4. 거절 시 자연어 fallback 모드로 진행 — post-hoc receipt validation 만 작동, hook
-   기반 enforcement 는 약화.
+- `commands/` - Slash command specifications. Start here when changing user
+  behavior. `commands/deep-work.md` is the orchestrator.
+- `skills/` - Codex skill entrypoints and workflow wrappers.
+- `agents/` - Worker prompt contracts for research and implementation. Codex
+  does not enforce Claude-style per-agent tool frontmatter.
+- `hooks/` - Runtime hook scripts and hook templates. These enforce phases,
+  track files, update receipts, and trigger sensors.
+- `sensors/` - Ecosystem detection and computational sensor execution.
+- `health/` - Health baseline and project health-check logic.
+- `templates/` - Topology and harness template helpers.
+- `scripts/migrate-from-claude/` - One-time and regression-tested migration
+  tooling from the Claude Code plugin source.
+- `vendor/` - Source snapshot metadata for migration reference.
+- `assumptions.json` - Explicit assumptions and advisory enforcement gaps.
+- `docs/` - Local migration records and phase evidence. Do not treat docs as
+  the runtime command source of truth.
 
-이 패턴은 Codex 의 `features.skill_mcp_dependency_install` 패턴을 차용 (OI-11).
+## Workflow Surface
 
-## Tool Mapping (CC → Codex)
+`/deep-work` drives the 5-phase development flow:
 
-| CC tool | Codex 등가 | 변환 방식 |
-|---|---|---|
-| Read / Write / Edit / MultiEdit / Glob / Grep / Bash / WebFetch / WebSearch | 동일 (native passthrough) | 변경 없음 |
-| TaskCreate / TaskUpdate / TaskList / TaskGet / TodoWrite | `update_plan` | 자연어 plan-step 모델로 통합 |
-| Task (single subagent dispatch) | `spawn_agent` (multi_agent) | 자연어 prompt — agents/<name>.md 본문이 message |
-| Task (parallel, single message N개) | `spawn_agent` × N + wait × N + close_agent × N | parallel 자연어 변환 (slot=6) |
-| Skill | (네이티브 호출) | "the <name> skill" 자연어 |
-| AskUserQuestion (structured) | (자연어 ask) | 번호 매김 prompt — header/multiSelect 제약 deadwood |
-| TeamCreate / TeamDelete / TeamGet | (미지원, B-α) | 자연어 fallback ("track parallel workers in main session memory") |
-| SendMessage | (미지원, B-α) | 두 패턴 분리 — pattern 1 (parallel aggregation, **B-α 보존**), pattern 2 (양방향 receipt, **deadwood** — Phase C #1 검증: implement-slice-worker SendMessage 0건이라 변환 불필요) |
-| NotebookEdit | (미지원) | Write fallback |
-| Task(model=...) per-call override | (미지원) | model_routing field information-only |
+1. Brainstorm
+2. Research
+3. Plan
+4. Implement
+5. Test
 
-## Semantic Losses (B-α)
+Supporting commands expose narrower operations such as `deep-research`,
+`deep-plan`, `deep-implement`, `deep-test`, `deep-status`,
+`deep-resume`, `deep-report`, `deep-receipt`, `deep-fork`, and
+`deep-integrate`.
 
-B-α 스코프 (결정 2) — Codex v0.1.0 에서 다음 enforcement / semantic 은 약화 또는 손실됨:
+When changing behavior, update the command entrypoint first, then align skills,
+hooks, README, and tests. Do not assume reference docs drive runtime behavior.
 
-| 항목 | CC 동작 | Codex v0.1.0 처리 | 회복 시점 |
-|---|---|---|---|
-| per-call `model` override (`Agent(model=...)`) | research/implement worker 별 model 분리 | 모든 worker 가 Codex 기본 model 사용. `model_routing` 필드 information-only | Codex `spawn_agent(model=...)` 추가 시 |
-| per-agent `tools` whitelist (frontmatter) | 플러그인 레벨 강제 | 자연어 가이드 + post-hoc receipt validation (hook-derived `tools_used`) | Codex plugin.json `agents` 필드 + 제약 추가 시 |
-| AskUserQuestion structured options | UI picker, 검증 응답 | 번호 매김 자연어 prompt — 자유 입력 | Codex structured ask 추가 시 |
-| TeamCreate / SendMessage 패턴 1 (parallel aggregation) | N worker 동시 + main 결과 수집 | **B-α 에서 보존** (spawn_agent N + wait N + main aggregate) | (영향 없음) |
-| TeamCreate / SendMessage 패턴 2 (sequential chain + 양방향 receipt) | team namespace + 양방향 메시지 | **deadwood** — Phase C 부록 F #1 검증: v6.4.0 의 `implement-slice-worker` 가 SendMessage 0건이라 sequential chain 변환 불필요. Branch A 전체 미지원, env_var 활성 시 Branch B (pattern 1) 로 fall-through | Codex 가 inter-agent message 추가 시 (sequential chain 변환은 v0.2+ 후속) |
-| Hook `CLAUDE_TOOL_USE_*` env var fallback | env var + stdin JSON 둘 다 지원 | stdin JSON envelope 만 active. `parse_hook_stdin` (lib/utils.sh) 가 jq 로 envelope 파싱 + `TOOL_NAME`/`TOOL_INPUT` 등 + **5 backward-compat env aliases (`CLAUDE_TOOL_USE_TOOL_NAME` 등) export** — vendor downstream 의 env-var fallback 코드는 alias 로 통과 (Phase C 부록 F #6) | (영구 — Codex 가 env var prepend 추가해도 alias 우선) |
+## Hook And State Model
 
-## State Namespace
+- Runtime state is written under `.codex/`, not `.claude/`.
+- Legacy `.claude/` state is read-only compatibility input. Helpers may import
+  it once into `.codex/`, but Codex should not write new legacy state.
+- State access should go through helper functions such as `read_state_file`,
+  `write_state_file`, and `init_deep_work_state`.
+- Hook stdin is the active contract. `parse_hook_stdin` reads the Codex JSON
+  envelope and exports backward-compatible aliases for vendor-derived code.
+- `file-tracker.sh` records `tools_used` and `model_used` into receipts for
+  post-hoc validation.
 
-- Runtime state 위치: `.codex/deep-work/` 디렉토리 또는 `.codex/deep-work.<SESSION>.md` 파일
-- Legacy `.claude/` 경로는 read-only — `read_state_file()` 가 1회 import 후 `.codex/` 로 복사 (per-file resolution)
-- `.codex/` 가 우선 (write target). `.claude/` 는 Codex 가 절대 쓰지 않음 — CC 본가 호환성 보존
+## B-alpha Compatibility Notes
 
-## Receipt 검증 (Post-hoc Tool Whitelist Enforcement)
+Codex currently lacks some Claude Code plugin semantics:
 
-Codex 는 plugin 레벨 per-agent `tools` whitelist 강제 불가능 (CC frontmatter
-`tools:` 필드 미지원). 대신 receipt 사후 검증으로 위반 신호화:
+- Per-call worker model overrides are information-only. Spawned workers use the
+  active Codex model unless Codex adds runtime model routing support.
+- Per-agent tool allowlists are not runtime-enforced by Codex. This repo records
+  tool usage in receipts and validates it later where possible.
+- Structured `AskUserQuestion` options are represented as natural-language
+  prompts.
+- Team namespace APIs are not available. Parallel aggregation is preserved via
+  multiple `spawn_agent` calls, but inter-agent messaging is not.
 
-- `assumptions.json` 의 `post_hoc_tool_whitelist_enforcement` assumption (Phase C #4)
-- file-tracker.sh 가 PostToolUse 마다 invoked TOOL_NAME 을 receipt 의
-  `tools_used` 배열에 dedup-append + envelope `.model` 을 `model_used` 로 기록
-- Phase D: `verify-receipt-core.js` 가 `tools_used` 를 agent `.md` 본문의 자연어
-  tools 가이드 ("You may only use Read/Grep tools") 와 대조하여 위반 검출
+Treat these as documented semantic losses, not accidental TODOs.
 
-## Test Suite
+## Migration Tooling
 
-- 실행: 레포 루트에서 `npm test` (tracked test files only; ignored vendor snapshots excluded)
-- Baseline 카운트: `tests/.baseline-count = 722` (Phase E completion pass 에서 ignored vendor snapshot 을 completion gate 에서 제외)
-- Expected fail 카운트: `tests/.expected-fail-count = 0` (Phase E completion pass 에서 hook state/registry/worktree tests 를 `.codex` primary + Codex envelope 기준으로 수렴)
-- verify-migration.sh 가 count + pass/fail 둘 다 검증 (`/deep-review 2026-04-26 C5` fix)
+The scripts in `scripts/migrate-from-claude/` are used to reproduce and verify
+the Claude-to-Codex migration. Their default paths are repo-relative, so they
+continue to work after the repository is moved.
+
+Common checks:
+
+```bash
+npm test
+bash scripts/migrate-from-claude/verify-migration.sh
+VERIFY_STRICT=1 bash scripts/migrate-from-claude/verify-migration.sh
+```
+
+Pass explicit vendor and target paths when testing a different source snapshot.
+
+## Verification Checklist
+
+Before finishing code changes:
+
+- Run `npm test`.
+- Run `git diff --check`.
+- If migration scripts changed, run `node --check` on the edited `.mjs` files.
+- If hook behavior changed, exercise the relevant hook script tests and inspect
+  receipt/state side effects.
+- If marketplace metadata changed, verify `codex-deep-suite` pins the intended
+  Git SHA.
+
+Current tracked test baseline:
+
+- `tests/.baseline-count = 722`
+- `tests/.expected-fail-count = 0`
+
+## Maintenance Rules
+
+- Keep command behavior and tests aligned. Passing prose-only review is not
+  enough for hook or shell changes.
+- Prefer repo-relative paths over user-local absolute paths.
+- Keep `.codex/` as the write namespace and `.claude/` as legacy read-only
+  input.
+- Do not broaden Phase 5 or hook allowlists without an executable regression
+  test.
+- Keep public release metadata in `.codex-plugin/plugin.json`,
+  `package.json`, README, and CHANGELOG consistent.
+- The suite marketplace should pin released plugin SHAs with `source: "url"`
+  and `sha`.

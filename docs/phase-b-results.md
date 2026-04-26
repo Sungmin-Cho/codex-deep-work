@@ -2,7 +2,7 @@
 
 > **Date**: 2026-04-25
 > **Branch**: `phase-b/migrate-from-claude` on codex-deep-work
-> **Plan**: `~/Dev/codex-deep-suite/docs/superpowers/plans/2026-04-25-codex-deep-work-phase-b.md` (v7, Plan-Patch-30~33 사전 fix 흡수)
+> **Plan**: `~/Dev/codex-plugins/codex-deep-suite/docs/superpowers/plans/2026-04-25-codex-deep-work-phase-b.md` (v7, Plan-Patch-30~33 사전 fix 흡수)
 > **Status**: 자동 변환 9/9 task 완료, 회귀 테스트 95+ PASS, verify-migration.sh PHASE_GATE=phase-b 결과 ALL CHECKS PASS
 
 ## 자동 변환 9/9 task 완료
