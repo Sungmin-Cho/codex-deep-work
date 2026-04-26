@@ -3,6 +3,8 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const { verifyReceipts, parsePlanMd, parseStateFile } =
   require('../../hooks/scripts/verify-receipt-core.js');
 
@@ -22,6 +24,119 @@ function loadFixture(name) {
 }
 
 describe('v6.4.0 integration — verify-delegated-receipt', () => {
+  it('ships runtime helpers referenced by orchestrator and Phase 5', () => {
+    const root = path.join(__dirname, '..', '..');
+    assert.equal(fs.existsSync(path.join(root, 'scripts', 'migrate-model-routing.js')), true);
+    assert.equal(fs.existsSync(path.join(root, 'skills', 'deep-integrate', 'phase5-finalize.sh')), true);
+    assert.equal(fs.existsSync(path.join(root, 'skills', 'deep-integrate', 'phase5-record-error.sh')), true);
+  });
+
+  it('Phase 5 helpers execute against .codex state and do not create legacy .claude state', () => {
+    const root = path.join(__dirname, '..', '..');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'phase5-helper-'));
+    const codexDir = path.join(tmp, '.codex');
+    const workDir = path.join(tmp, 'work');
+    const stateFile = path.join(codexDir, 'deep-work.s1.md');
+
+    try {
+      fs.mkdirSync(codexDir, { recursive: true });
+      fs.mkdirSync(workDir);
+      fs.writeFileSync(path.join(codexDir, 'deep-work-current-session'), 's1\n');
+      fs.writeFileSync(stateFile, [
+        '---',
+        'work_dir: "work"',
+        'phase5_work_dir_snapshot: "work"',
+        '---',
+        '# state',
+      ].join('\n'));
+
+      const env = { ...process.env, DEEP_WORK_SESSION_ID: 's1' };
+      execFileSync('bash', [
+        path.join(root, 'skills', 'deep-integrate', 'phase5-finalize.sh'),
+        stateFile,
+        '2026-04-19T03:45:00Z',
+      ], { env, stdio: 'pipe' });
+      execFileSync('bash', [
+        path.join(root, 'skills', 'deep-integrate', 'phase5-record-error.sh'),
+        workDir,
+      ], { env, stdio: 'pipe' });
+
+      const state = fs.readFileSync(stateFile, 'utf8');
+      const loop = JSON.parse(fs.readFileSync(path.join(workDir, 'integrate-loop.json'), 'utf8'));
+
+      assert.match(state, /phase5_completed_at: "2026-04-19T03:45:00Z"/);
+      assert.equal(loop.session_id, 's1');
+      assert.equal(loop.work_dir, 'work');
+      assert.equal(loop.terminated_by, 'error');
+      assert.equal(fs.existsSync(path.join(tmp, '.claude')), false);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('deep-research separates session artifact work_dir from target root for Health Engine', () => {
+    const root = path.join(__dirname, '..', '..');
+    const skill = fs.readFileSync(path.join(root, 'skills', 'deep-research', 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /\$WORK_DIR.*세션 산출물 디렉토리/);
+    assert.match(skill, /\$TARGET_ROOT/);
+    assert.match(skill, /health-check\.js "\$TARGET_ROOT" --skip-audit/);
+    assert.doesNotMatch(skill, /health-check\.js "\$WORK_DIR" --skip-audit/);
+    assert.doesNotMatch(skill, /\$WORK_DIR\/\.deep-review\/fitness\.json/);
+  });
+
+  it('hooks template and Phase 5 guard agree on suite marketplace cache path', () => {
+    const root = path.join(__dirname, '..', '..');
+    const hooksTemplate = fs.readFileSync(path.join(root, 'hooks', 'hooks-template.json'), 'utf8');
+    const phaseGuard = fs.readFileSync(path.join(root, 'hooks', 'scripts', 'phase-guard.sh'), 'utf8');
+
+    assert.match(hooksTemplate, /codex-deep-suite\/deep-work\/\$\{PLUGIN_SHA\}/);
+    assert.doesNotMatch(hooksTemplate, /cache\/codex-deep-work\/\$\{PLUGIN_SHA\}/);
+    assert.match(phaseGuard, /codex-deep-suite\/deep-work\/\*\/skills\/deep-integrate/);
+  });
+
+  it('active runtime docs/scripts do not direct writes or deletes to legacy .claude cache paths', () => {
+    const root = path.join(__dirname, '..', '..');
+    const updateCheck = fs.readFileSync(path.join(root, 'hooks', 'scripts', 'update-check.sh'), 'utf8');
+    const deepResume = fs.readFileSync(path.join(root, 'commands', 'deep-resume.md'), 'utf8');
+
+    assert.match(updateCheck, /STATE_DIR="\$HOME\/\.codex"/);
+    assert.doesNotMatch(updateCheck, /STATE_DIR="\$HOME\/\.claude"/);
+    assert.doesNotMatch(deepResume, /rm -f \.claude\/\.phase-cache/);
+    assert.match(deepResume, /rm -f \.codex\/\.phase-cache/);
+  });
+
+  it('migrate-model-routing preserves plan=main while migrating delegated phases', () => {
+    const root = path.join(__dirname, '..', '..');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'model-routing-'));
+    const stateFile = path.join(tmp, 'deep-work.S1.md');
+    fs.writeFileSync(stateFile, [
+      '---',
+      'model_routing:',
+      '  research: main',
+      '  plan: main',
+      '  implement: "main" # legacy',
+      '  test: main-beta',
+      '---',
+      '',
+    ].join('\n'));
+
+    try {
+      const { migrateStateFile } = require(path.join(root, 'scripts', 'migrate-model-routing.js'));
+      const result = migrateStateFile(stateFile);
+      const migrated = fs.readFileSync(stateFile, 'utf8');
+
+      assert.deepEqual(result.replaced, ['research', 'implement']);
+      assert.deepEqual(result.warnings, ['unknown model_routing.test value "main-beta" — preserved as-is']);
+      assert.match(migrated, /research: "sonnet"/);
+      assert.match(migrated, /plan: main/);
+      assert.match(migrated, /implement: "sonnet" # legacy/);
+      assert.match(migrated, /test: main-beta/);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('passing fixture → pass=true (exercises parsePlanMd + parseStateFile)', () => {
     const { plan, state, receipts } = loadFixture('passing');
     // Sanity: fixtures actually drive parse paths

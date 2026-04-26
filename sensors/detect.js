@@ -5,6 +5,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
+const TOOL_PROBE_TIMEOUT_MS = 500;
+
 function loadRegistry(registryPath) {
   const raw = fs.readFileSync(registryPath, 'utf-8');
   return JSON.parse(raw);
@@ -44,17 +46,31 @@ function matchEcosystem(projectRoot, detectConfig) {
   return true;
 }
 
-function checkToolAvailable(cmd) {
-  if (!cmd) return false;
+function extractBinary(cmd) {
+  if (!cmd) return null;
   const parts = cmd.trim().split(/\s+/);
-  try {
-    if (parts[0] === 'npx') {
-      const pkg = parts[1];
-      execFileSync('npx', ['--no-install', pkg, '--version'], { stdio: 'ignore', timeout: 10000 });
-    } else {
-      const binary = parts[0];
-      execFileSync('which', [binary], { stdio: 'ignore', timeout: 5000 });
+  if (parts[0] === 'npx') {
+    for (const part of parts.slice(1)) {
+      if (!part.startsWith('-')) return part;
     }
+    return null;
+  }
+  return parts[0] || null;
+}
+
+function checkToolAvailable(cmd, options = {}) {
+  const binary = extractBinary(cmd);
+  if (!binary) return false;
+  const projectRoot = options.projectRoot || process.cwd();
+  const timeout = options.timeout ?? TOOL_PROBE_TIMEOUT_MS;
+  const localBin = path.join(projectRoot, 'node_modules', '.bin', binary);
+
+  if (fs.existsSync(localBin)) {
+    return true;
+  }
+
+  try {
+    execFileSync('which', [binary], { stdio: 'ignore', timeout });
     return true;
   } catch {
     return false;
@@ -75,9 +91,9 @@ function detectEcosystems(projectRoot, registryPath) {
     for (const key of sensorKeys) {
       if (def[key]) {
         const sensorDef = def[key];
-        const available = checkToolAvailable(sensorDef.cmd);
+        const available = checkToolAvailable(sensorDef.cmd, { projectRoot });
         sensors[key] = {
-          tool: sensorDef.cmd ? sensorDef.cmd.trim().split(/\s+/)[0] : null,
+          tool: sensorDef.cmd ? extractBinary(sensorDef.cmd) : null,
           cmd: sensorDef.cmd || null,
           parser: sensorDef.parser || null,
           status: available ? 'available' : 'not_installed',
@@ -100,7 +116,7 @@ function detectEcosystems(projectRoot, registryPath) {
   };
 }
 
-module.exports = { loadRegistry, matchEcosystem, detectEcosystems, checkToolAvailable };
+module.exports = { loadRegistry, matchEcosystem, detectEcosystems, checkToolAvailable, extractBinary };
 
 if (require.main === module) {
   const projectRoot = process.argv[2] || process.cwd();
@@ -108,9 +124,9 @@ if (require.main === module) {
   const result = detectEcosystems(projectRoot, registryPath);
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
 
-  // Cache detection results to .claude/.sensor-detection-cache.json for
+  // Cache detection results to .codex/.sensor-detection-cache.json for
   // subsequent deep-implement runs to read without re-running detection.
-  const cacheDir = path.join(projectRoot, '.claude');
+  const cacheDir = path.join(projectRoot, '.codex');
   if (fs.existsSync(cacheDir)) {
     fs.writeFileSync(path.join(cacheDir, '.sensor-detection-cache.json'), JSON.stringify(result, null, 2));
   }

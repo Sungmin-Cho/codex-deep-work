@@ -8,12 +8,12 @@ description: |
 
   <example>
   Context: parent skill runs Research in solo mode
-  prompt (parent → agent): "area=full; work_dir=/.../deep-work; task=..."
+  prompt (parent → agent): "area=full; work_dir=/.../deep-work; target_root=/repo; task=..."
   </example>
 
   <example>
   Context: parent skill runs Research in team mode, arch area
-  prompt (parent → agent): "area=architecture; work_dir=...; task=..."
+  prompt (parent → agent): "area=architecture; work_dir=...; target_root=...; task=..."
   </example>
 model: inherit
 color: blue
@@ -36,6 +36,7 @@ structured research document for the deep-work plugin's Research phase.
 Required keys in the invocation prompt:
 - area: full | architecture | patterns | risks
 - work_dir: absolute path where output is written
+- target_root: absolute path to analyze (project root or fork worktree)
 - task: original task description (context)
 - (optional) re_run_area: null | architecture | patterns | risks | full
   (forwarded from CLI `--scope=`: partial re-run mode. If set, only re-analyze
@@ -61,6 +62,7 @@ Return to caller: { path, summary (≤5 lines), findings_tags: ["RF-001", "RA-00
 
 # Rules
 - DO NOT modify source files. Read-only.
+- Analyze files under `target_root`; write only to `work_dir`.
 - Every finding includes file_path:line reference.
 - Tag format: [RF-NNN] findings / [RA-NNN] architecture decisions.
 - Follow shared/references/research-guide.md methodology.

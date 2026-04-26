@@ -1,6 +1,6 @@
 # AGENTS.md - codex-deep-work
 
-This repository contains the Codex CLI port of **claude-deep-work v6.4.0**.
+This repository contains the Codex CLI port of **claude-deep-work v6.4.1**.
 It packages the Evidence-Driven Development Protocol as a Codex plugin with
 commands, skills, hooks, sensors, health checks, and migration tooling.
 
@@ -70,13 +70,14 @@ enforcement will be weaker.
 
 ## Workflow Surface
 
-`/deep-work` drives the 5-phase development flow:
+`/deep-work` drives the 6-phase development flow:
 
 1. Brainstorm
 2. Research
 3. Plan
 4. Implement
 5. Test
+6. Integrate
 
 Supporting commands expose narrower operations such as `deep-research`,
 `deep-plan`, `deep-implement`, `deep-test`, `deep-status`,
@@ -143,7 +144,7 @@ Before finishing code changes:
 
 Current tracked test baseline:
 
-- `tests/.baseline-count = 722`
+- `tests/.baseline-count = 740`
 - `tests/.expected-fail-count = 0`
 
 ## Maintenance Rules

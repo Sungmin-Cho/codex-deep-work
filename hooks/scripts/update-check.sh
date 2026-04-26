@@ -29,7 +29,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-STATE_DIR="$HOME/.claude"
+STATE_DIR="$HOME/.codex"
 CACHE_FILE="$STATE_DIR/.deep-work-update-cache"
 MARKER_FILE="$STATE_DIR/.deep-work-just-upgraded"
 SNOOZE_FILE="$STATE_DIR/.deep-work-update-snoozed"
@@ -43,6 +43,8 @@ fi
 if [ -z "$LOCAL" ]; then
   exit 0  # can't determine version
 fi
+
+mkdir -p "$STATE_DIR" 2>/dev/null || true
 
 # ─── Read profile for update settings ─────────────────────────
 # Check deep-work-profile.yaml for auto_update and update_check settings
