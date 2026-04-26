@@ -246,6 +246,25 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
+## SendMessage 패턴 1 vs 2 분류 (부록 F #1) — **RESOLVED (Phase C, 2026-04-26)**
+
+- spec Section 3-6 line 478-479 의 두 패턴 분리 정의:
+  - Pattern 1 (parallel aggregation): N worker 동시 + main aggregate. B-α 보존.
+  - Pattern 2 (sequential chain + 양방향 receipt): team namespace + 양방향 메시지. B-α 에서 sequential chain (spec→test→impl) 으로 축소 의도.
+
+- 검증 결과:
+  - **Pattern 1**: deep-implement SKILL.md Branch B (line 363-380) 가 `Agent` N parallel + main receipt aggregate 로 정확 보존 ✓
+  - **Pattern 2**: deep-implement SKILL.md Branch A (line 331-359) 가 deadwood 처리 — spec 의 "sequential chain 변환" 옵션 미적용
+  - **이유**: v6.4.0 의 `implement-slice-worker` agent 본문에 SendMessage 0건 — worker-to-worker 양방향 통신 부재 (receipt-file 기반) → sequential chain 변환 불필요
+  - **결과**: env_var 활성 시 Branch B (pattern 1) 로 fall-through. spec ↔ skill 의식적 결정 차이를 deadwood marker 에 명시.
+  - commands/*.md frontmatter 의 `allowed-tools: ... SendMessage` 잔존은 spec line 208 ("frontmatter 유지") 의도와 일치 ✓
+  - AGENTS.md line 51-52 의 mapping table 은 spec 의 분류와 일치 ✓
+  - agents/implement-slice-worker.md SendMessage 0건 ✓
+
+- 변경 commit: (Phase C resume 세션, deep-implement SKILL.md Branch A deadwood marker 보강)
+
+---
+
 ## OI-2: update_plan 시그니처 (Medium) — **RESOLVED (Phase C, 2026-04-26)**
 
 - 처리 정책: spec line 617 ("Medium / deep-implement skill 마이그레이션 시") 따름

@@ -336,7 +336,9 @@ ask the user with numbered options (1) ... 2) ... — 숫자로 응답). env var
 ```
 1. Cluster: file 소유권 기반 slice 그룹화 (겹침 → sequential, 독립 → parallel)
    — 이 logic은 Task 9 Section 2.1의 cluster 추출과 동일한 code path 재사용.
-2. Dispatch: TeamCreate "deep-implement" (※ B-α 미지원 — TeamCreate/SendMessage/TeamDelete 모두 Codex 미지원이라 본 Branch A 전체가 deadwood. env_var 활성 + 사용자 선택 시에도 Codex 환경에서는 fall-through. 아래 pseudo-code 는 v6.4.0 CC 호환 reference.)
+2. Dispatch: TeamCreate "deep-implement" (※ B-α 미지원 — TeamCreate/SendMessage/TeamDelete 모두 Codex 미지원이라 본 Branch A 전체가 deadwood. env_var 활성 + 사용자 선택 시에도 Codex 환경에서는 Branch B (pattern 1, parallel aggregation) 로 fall-through.
+   Spec Section 3-6 line 478-479 는 SendMessage pattern 2 (양방향 receipt) 의 변환 옵션으로 "sequential chain (spec→test→impl), 단방향 main 경유" 를 제안했으나, 실제 v6.4.0 의 implement-slice-worker 가 receipt-file 기반 통신만 사용하고 worker-to-worker SendMessage 0건이라 변환 불필요 → deadwood 처리. 부록 F #1 검증.
+   아래 pseudo-code 는 v6.4.0 CC 호환 reference.)
    - team_name: "deep-implement-v640"
    - 각 cluster 에 대해 update_plan 호출하여 단일 step 추가:
      - step: "Implement cluster C{n}: slice_ids=<...>, files=<...> (TDD + Slice Review 규칙 적용)"
