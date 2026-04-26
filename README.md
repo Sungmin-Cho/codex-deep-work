@@ -11,7 +11,7 @@ codex plugin marketplace add https://github.com/Sungmin-Cho/codex-deep-suite
 # marketplace add 시 자동 install (cache fetch). 별도 install 명령 부재.
 ```
 
-> **현재 상태 (2026-04-26)**: Phase A + B 완료, Phase C 부록 F 8/11 진행 중. Phase D + E 후 v0.1.0 release. 위 명령은 release 후 동작.
+> **현재 상태 (2026-04-26)**: Phase A + B + C 완료 (부록 F 11/11), Phase D 진입 + 본 deep-review 응답 (`/deep-review 2026-04-26-152137`) 7 critical fix 흡수. 다음: Phase E (release 준비). 위 명령은 release 후 동작.
 
 > **Pre-release 검증**: `bash scripts/migrate-from-claude/verify-migration.sh` 로 마이그레이션 게이트 확인. Phase B/C 진행 상황은 `CHANGELOG.md` 참조.
 

@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill, Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, TeamCreate, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
+allowed-tools: Skill, Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, update_plan
 description: "Resume an active deep work session — restores context and continues from where you left off"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->

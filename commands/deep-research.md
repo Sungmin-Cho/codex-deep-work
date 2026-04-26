@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill, Read, Grep, Glob, Agent, Write, Bash, TeamCreate, TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage
+allowed-tools: Skill, Read, Grep, Glob, Agent, Write, Bash, update_plan
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
 

@@ -57,6 +57,14 @@ find_project_root() {
 }
 PROJECT_ROOT="$(find_project_root 2>/dev/null || echo "$PWD")"
 
+# /deep-review 2026-04-26 C1: read_state_file 호출 전에 utils.sh source 필수.
+# 부록 F #8 commit 이 read_state_file 로 변경했으나 utils.sh 미source 라 함수 미정의 →
+# `command not found` 가 `2>/dev/null || true` 로 silent 마스킹 → PROFILE_CONTENT 빈 값 →
+# update_check / auto_update 사용자 opt-out 무시.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/utils.sh"
+
 # Phase C 부록 F #8: indirect 변수 할당 → read_state_file 함수 호출. PROFILE_FILE 변수 제거,
 # read_state_file 가 legacy .claude/ fallback + per-file resolution 자동 처리.
 PROFILE_CONTENT="$(read_state_file deep-work-profile.yaml 2>/dev/null || true)"

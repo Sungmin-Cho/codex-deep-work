@@ -64,7 +64,13 @@ validate_legacy_schema() {
 
 # parse_hook_stdin  — sources STDIN_JSON + 5 legacy aliases. Plan-Patch-7/8.
 # Usage in hook scripts:  source "$(dirname "$0")/lib/utils.sh" && parse_hook_stdin
+# /deep-review 2026-04-26 W1: idempotency guard — 두 번째 호출 시 stdin 이 이미 소진됐으므로
+# 모든 var 가 silent 하게 빈 값으로 덮어쓰일 위험 차단. 첫 호출만 실제 read.
 parse_hook_stdin() {
+  if [ -n "${_PARSE_HOOK_STDIN_DONE:-}" ]; then
+    return 0
+  fi
+  _PARSE_HOOK_STDIN_DONE=1
   STDIN_JSON=$(cat)
   TOOL_NAME=$(printf '%s' "$STDIN_JSON" | jq -r '.tool_name // empty')
   TOOL_INPUT=$(printf '%s' "$STDIN_JSON" | jq -c '.tool_input // {}')

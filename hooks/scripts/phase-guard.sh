@@ -281,8 +281,13 @@ if [[ -n "$PHASE5_MODE" ]]; then
                   # v6.3.0 review C7-1/C8-2: plugin cache 경로는 $HOME prefix anchored + 알려진 plugin ID로 제한.
                   # bash glob `*`의 `/` 포함 매치 및 임의 plugin에 대한 trust 위임을 원천 차단.
                   # 허용 plugin ID: `codex-deep-suite` (marketplace ID) 하위의 `deep-work` plugin만.
-                  _P5_PLUGINS_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
-                  if [[ -n "$_P5_PLUGINS_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_PLUGINS_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
+                  # /deep-review 2026-04-26 C4: Codex install 환경은 ~/.codex/plugins/cache 사용.
+                  # ~/.claude/plugins/cache 만 매치하면 정상 Codex helper 가 차단됨. dual-search.
+                  _P5_CODEX_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.codex/plugins/cache")"
+                  _P5_CLAUDE_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
+                  if [[ -n "$_P5_CODEX_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_CODEX_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
+                    _P5_HELPER_OK=1
+                  elif [[ -n "$_P5_CLAUDE_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_CLAUDE_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
                     _P5_HELPER_OK=1
                   fi
                 fi
@@ -455,8 +460,12 @@ if [[ -n "$PHASE5_MODE" ]]; then
             _P5_IS_ALLOWED_SCRIPT=1
           else
             # v6.3.0 review C7-1/C8-2: plugin cache 경로를 codex-deep-suite/deep-work만 허용.
-            _P5_PLUGINS_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
-            if [[ -n "$_P5_PLUGINS_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_PLUGINS_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
+            # /deep-review 2026-04-26 C4: Codex install 환경 ~/.codex/plugins/cache 우선 + .claude fallback.
+            _P5_CODEX_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.codex/plugins/cache")"
+            _P5_CLAUDE_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
+            if [[ -n "$_P5_CODEX_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_CODEX_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
+              _P5_IS_ALLOWED_SCRIPT=1
+            elif [[ -n "$_P5_CLAUDE_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_CLAUDE_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
               _P5_IS_ALLOWED_SCRIPT=1
             fi
           fi

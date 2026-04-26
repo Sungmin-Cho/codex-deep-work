@@ -79,5 +79,6 @@ Codex 는 plugin 레벨 per-agent `tools` whitelist 강제 불가능 (CC frontma
 ## Test Suite
 
 - 실행: 레포 루트에서 `node --test`
-- Baseline 카운트: `tests/.baseline-count` 에 freeze (Phase A snapshot, 600 tests on Node v22)
-- Phase B/C 작업 중 카운트 증가 — 부록 F #6 (I6) 에서 baseline 갱신 예정
+- Baseline 카운트: `tests/.baseline-count = 1314` (Phase C 종료 시점 갱신, Node v22)
+- Expected fail 카운트: `tests/.expected-fail-count = 136` (Phase D 진입 시점 deferred subsystems — fork registration / file ownership / multi-session 등)
+- verify-migration.sh 가 count + pass/fail 둘 다 검증 (`/deep-review 2026-04-26 C5` fix)

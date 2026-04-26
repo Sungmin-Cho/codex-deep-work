@@ -680,8 +680,10 @@ if (require.main === module) {
       process.stderr.write(`INTERNAL_ERROR: ${err.message}\n${err.stack || ''}\n`);
       process.stdout.write(JSON.stringify({
         decision: 'block',
-        // Phase C 부록 F #8: error 로그 위치 안내를 일반 가이드로 변경 (raw path 노출 제거).
-        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. /deep-status 로 세션 상태를 확인하거나 hook 디버그 로그를 확인하세요.'
+        // /deep-review 2026-04-26 I3: operability 복원 — log 파일 명을 명시 (verify-migration
+        // regex 가 코멘트/string literal 도 grep 에서 제외하므로 안전). I3 commit 이전에는
+        // raw path 우려로 제거했으나 사용자/operator 가 디버그 location 못 찾는 문제 발생.
+        reason: '⛔ Deep Work Guard: 내부 검증 오류가 발생했습니다. /deep-status 로 세션 상태를 확인하거나 hook stderr 로그 (deep-work-guard-errors.log) 를 확인하세요.'
       }));
       process.exit(3);
     }

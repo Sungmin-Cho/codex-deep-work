@@ -10,26 +10,49 @@ ALLOWLIST_DIR="$PROJECT_ROOT/scripts/migrate-from-claude/lib"
 
 EXIT=0
 
-echo "=== verify-migration: 1. test count ==="
+echo "=== verify-migration: 1. test count + pass/fail ==="
 BASELINE=$(cat "$PROJECT_ROOT/tests/.baseline-count" 2>/dev/null || echo "")
+EXPECTED_FAIL=$(cat "$PROJECT_ROOT/tests/.expected-fail-count" 2>/dev/null || echo "0")
 if [ -z "$BASELINE" ]; then
   echo "WARN: tests/.baseline-count missing"
 else
-  # Plan-Patch-1: Node v22 ICU 지원 정규식 (^[ℹ#] tests)
-  ACTUAL=$(cd "$PROJECT_ROOT" && node --test 2>&1 | { grep -E "^[ℹ#] tests [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
+  # /deep-review 2026-04-26 C5: count 만이 아니라 pass/fail 도 검증. 이전엔 count = count
+  # 만 통과해도 ALL CHECKS PASS — 136 fails 가 silently masked.
+  TEST_OUTPUT=$(cd "$PROJECT_ROOT" && node --test 2>&1)
+  ACTUAL=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] tests [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
+  ACTUAL_PASS=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] pass [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
+  ACTUAL_FAIL=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] fail [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
   ACTUAL="${ACTUAL:-}"
-  echo "baseline=$BASELINE actual=${ACTUAL:-(none)}"
+  ACTUAL_PASS="${ACTUAL_PASS:-0}"
+  ACTUAL_FAIL="${ACTUAL_FAIL:-0}"
+  echo "baseline=$BASELINE actual=${ACTUAL:-(none)} pass=$ACTUAL_PASS fail=$ACTUAL_FAIL expected_fail=$EXPECTED_FAIL"
+
+  PHASE_GATE_T="${PHASE_GATE:-phase-b}"
+  STRICT_MODE=0
+  if [ "$PHASE_GATE_T" = "phase-d" ] || [ "${VERIFY_STRICT:-}" = "1" ]; then
+    STRICT_MODE=1
+  fi
+
+  # Sub-check 1a: test count matches baseline
   if [ "$ACTUAL" != "$BASELINE" ]; then
-    PHASE_GATE_T="${PHASE_GATE:-phase-b}"
-    if [ "$PHASE_GATE_T" = "phase-d" ] || [ "${VERIFY_STRICT:-}" = "1" ]; then
-      echo "FAIL: test count mismatch (expected $BASELINE, got ${ACTUAL:-empty}; PHASE_GATE=$PHASE_GATE_T — strict mode)"
+    if [ "$STRICT_MODE" = "1" ]; then
+      echo "FAIL: test count mismatch (expected $BASELINE, got ${ACTUAL:-empty}; strict mode)"
       EXIT=1
     else
-      # Phase B: vendor fixture 변환 + agents 사람 검토 후 Phase D step 20 에서 수렴.
-      echo "WARN: test count mismatch (expected $BASELINE, got ${ACTUAL:-empty}; PHASE_GATE=$PHASE_GATE_T — Phase B 정상)"
+      echo "WARN: test count mismatch (expected $BASELINE, got ${ACTUAL:-empty}; Phase B 정상)"
     fi
-  else
-    echo "PASS: test count matches baseline"
+  fi
+
+  # Sub-check 1b: actual fail count <= expected_fail (regression detection)
+  if [ "$ACTUAL_FAIL" -gt "$EXPECTED_FAIL" ]; then
+    if [ "$STRICT_MODE" = "1" ]; then
+      echo "FAIL: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; strict mode)"
+      EXIT=1
+    else
+      echo "WARN: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; Phase B 정상)"
+    fi
+  elif [ "$ACTUAL" = "$BASELINE" ] && [ "$ACTUAL_FAIL" -le "$EXPECTED_FAIL" ]; then
+    echo "PASS: test count matches baseline AND fail count ≤ expected ($ACTUAL_FAIL ≤ $EXPECTED_FAIL)"
   fi
 fi
 
@@ -103,7 +126,7 @@ if [ ${#EXISTING_SCAN_DIRS[@]} -gt 0 ]; then
   # Phase B 실행 발견: test files (legacy 경로 시뮬레이션 fixture) + vendor 의 helper wrapper
   # (hooks/scripts/utils.sh) 도 grep -v 제외 — 둘 다 정상 raw 사용처.
   RAW=$(grep -rEn '\.codex/deep-work[/.\-]|\.claude/deep-work[/.\-]' "${EXISTING_SCAN_DIRS[@]}" 2>/dev/null \
-    | grep -vE 'read_state_file|write_state_file|read_state_file_append|write_state_file_append|hooks/scripts/lib/utils\.sh|hooks/scripts/utils\.sh|tests/fixtures/|state-glob-pattern|\.test\.(js|mjs)' \
+    | grep -vE 'read_state_file|write_state_file|read_state_file_append|write_state_file_append|hooks/scripts/lib/utils\.sh|hooks/scripts/utils\.sh|hooks/scripts/notify\.sh|tests/fixtures/|state-glob-pattern|\.test\.(js|mjs)' \
     | grep -vE 'TODO\(Phase-C\)' \
     | grep -vE '^[^:]+:[0-9]+:\s*#|^[^:]+:[0-9]+:\s*//|^[^:]+:[0-9]+:\s*\*' || true)
   # Phase C 부록 F #8: 코멘트 라인 (`#` shell, `//` JS) + JSDoc `*` continuation 모두 제외 — 문서/주석 false positive 차단.

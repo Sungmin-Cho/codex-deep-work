@@ -150,6 +150,9 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
       const args = process.argv.filter(a => a !== '[eval]');
       const sliceId = args[1], ts = args[2], receiptPath = args[3], modelUsed = args[4] || 'unknown';
       const data = {
+        // /deep-review 2026-04-26 I1: schema_version 명시 — receipt-migration 이 이를
+        // 기준으로 v1.0 인지 판단. 누락 시 매 run 마다 re-migration (idempotent 지만 비효율).
+        schema_version: '1.0',
         slice_id: sliceId, status: 'in_progress', tdd_state: 'PENDING',
         tdd: {}, changes: { files_modified: [], lines_added: 0, lines_removed: 0 },
         verification: {}, spec_compliance: {}, code_review: {}, debug: null,
@@ -215,6 +218,11 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
               if (typeof entry.file_path === "string" && !r.changes.files_modified.includes(entry.file_path)) {
                 r.changes.files_modified.push(entry.file_path);
               }
+              // /deep-review 2026-04-26 C6: pending sidecar 의 tool_name 도 propagate.
+              // 이전엔 file_path 만 저장 → lock-timeout race path 의 tool evidence 손실.
+              if (typeof entry.tool_name === "string" && entry.tool_name && !r.tools_used.includes(entry.tool_name)) {
+                r.tools_used.push(entry.tool_name);
+              }
             } catch(_) { /* skip malformed pending line */ }
           }
 
@@ -242,11 +250,13 @@ if [[ -n "$ACTIVE_SLICE" ]]; then
       # Lock timeout (very rare after retry bump) — queue for the next
       # invocation's drain. /deep-finish and session-end also sweep pending
       # files as a safety net.
+      # /deep-review 2026-04-26 C6: pending entry 에 tool_name 추가 — drain 시
+      # tools_used 에 propagate (이전엔 file_path 만 저장).
       node -e '
         const fs = require("fs");
-        const [, pendingFile, filePath, ts] = process.argv;
-        fs.appendFileSync(pendingFile, JSON.stringify({ file_path: filePath, ts }) + "\n");
-      ' "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" 2>/dev/null || true
+        const [, pendingFile, filePath, ts, toolName] = process.argv;
+        fs.appendFileSync(pendingFile, JSON.stringify({ file_path: filePath, ts, tool_name: toolName || "" }) + "\n");
+      ' "$_RECEIPT_PENDING" "$FILE_PATH" "$TIMESTAMP" "$TOOL_NAME" 2>/dev/null || true
     fi
   fi
 fi

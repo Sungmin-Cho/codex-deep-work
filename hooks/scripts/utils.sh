@@ -22,8 +22,9 @@ normalize_path() {
 }
 
 # ─── Project root detection ──────────────────────────────────
-# Walks up from $PWD looking for a .claude directory.
-# Returns the first directory containing .claude, or $PWD if not found.
+# Walks up from $PWD looking for a .codex/ (primary) or .claude/ (legacy fallback) directory.
+# Returns the first directory containing either, or $PWD if not found.
+# /deep-review 2026-04-26 I4: 코멘트가 .claude/ 만 언급했었음 — 실 동작 (.codex/ 우선) 반영.
 
 find_project_root() {
   local dir="$PWD"
@@ -237,19 +238,23 @@ init_deep_work_state() {
     session_id="$DEEP_WORK_SESSION_ID"
   fi
 
-  # Priority 2: pointer file
+  # Priority 2: pointer file via read_state_file (legacy .claude/ fallback 자동).
+  # /deep-review 2026-04-26 C3: 이전엔 .codex/deep-work-current-session 만 read →
+  # legacy .claude/ 만 있는 사용자 환경에서 STATE_FILE=deep-work.local.md (default) 로
+  # 빠지고, hook 들이 fast-path 에서 exit → enforcement 비활성. read_state_file 호출로
+  # legacy import 트리거 + per-file resolution 보장.
   if [[ -z "$session_id" ]]; then
-    local pointer_file="$PROJECT_ROOT/.codex/deep-work-current-session"
-    if [[ -f "$pointer_file" ]]; then
-      session_id="$(tr -d '\n\r' < "$pointer_file")"
-    fi
+    session_id="$(read_state_file "deep-work-current-session" 2>/dev/null | tr -d '\n\r' || true)"
   fi
 
   # Set STATE_FILE
   if [[ -n "$session_id" ]]; then
+    # /deep-review 2026-04-26 C3: legacy state file 도 read_state_file 가 import 하도록
+    # explicit 호출 (silent — STATE_FILE 은 .codex/ 경로로 통일).
+    read_state_file "deep-work.${session_id}.md" >/dev/null 2>&1 || true
     STATE_FILE="$PROJECT_ROOT/.codex/deep-work.${session_id}.md"
   else
-    # Priority 3: legacy fallback
+    # Priority 3: legacy fallback (no session_id resolved).
     STATE_FILE="$PROJECT_ROOT/.codex/deep-work.local.md"
   fi
 }
@@ -259,11 +264,21 @@ init_deep_work_state() {
 
 write_session_pointer() {
   local session_id="$1"
-  mkdir -p "$PROJECT_ROOT/.claude" 2>/dev/null
+  # /deep-review 2026-04-26 C2: vestigial CC-era leftover 제거. write_state_file 가
+  # 이미 .codex/ mkdir 처리. .claude/ 빈 디렉토리 생성은 spec/AGENTS.md 와 모순
+  # (".claude/ 는 Codex 가 절대 쓰지 않음 — CC 본가 호환성 보존").
   write_state_file "deep-work-current-session" "$(printf '%s' "$session_id")"
 }
 
 read_session_pointer() {
+  # /deep-review 2026-04-26 C3: read_state_file 사용으로 legacy .claude/ fallback
+  # 자동 처리 + per-file resolution.
+  read_state_file "deep-work-current-session" 2>/dev/null | tr -d '\n\r'
+  return 0
+}
+
+# Legacy fallback wrapper — kept for any caller still using direct path resolution.
+_read_session_pointer_legacy() {
   local pointer_file="$PROJECT_ROOT/.codex/deep-work-current-session"
   if [[ -f "$pointer_file" ]]; then
     tr -d '\n\r' < "$pointer_file"
