@@ -1,6 +1,6 @@
 # codex-deep-work
 
-Evidence-Driven Development Protocol — Codex CLI plugin port of [claude-deep-work v6.4.0](https://github.com/Sungmin-Cho/claude-deep-work).
+Evidence-Driven Development Protocol — Codex CLI plugin port of [claude-deep-work v6.4.1](https://github.com/Sungmin-Cho/claude-deep-work).
 
 **Scope:** B-α — parallel `spawn_agent` dispatch only. See Semantic Losses in `AGENTS.md`.
 
@@ -21,7 +21,7 @@ codex plugin marketplace add https://github.com/Sungmin-Cho/codex-deep-suite
 /deep-work "your task description"
 ```
 
-Drives 5-phase auto-flow: Brainstorm → Research → Plan → Implement → Test.
+Drives 6-phase auto-flow: Brainstorm → Research → Plan → Implement → Test → Integrate.
 
 ## Requirements
 

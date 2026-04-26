@@ -77,14 +77,14 @@ When displaying any receipt (dashboard or view), if the session state file conta
 ```
 ### Health Check (Phase 1 진단)
 - 🔍 드리프트: dead-export {count}건 | coverage {delta}%p | vuln {critical+high}건 | stale {count}건
-- 📐 Fitness: {passed}/{total} 통과 | 위반 delta: {delta}건
+- 📐 Fitness: {passed}/{total_rules} 통과 | required_missing: {required_missing}건
 - ⚠️ Required: {acknowledged ? "acknowledged" : "미해결 N건"}
 ```
 
 **Steps**:
 1. Read `health_report` from the session state file
-2. Extract drift metrics: `dead_exports.count`, `coverage_delta`, `vulnerability.critical + vulnerability.high`, `stale_deps.count`
-3. Extract fitness metrics: `fitness.passed`, `fitness.total`, `fitness.violation_delta`
+2. Extract drift metrics: `health_report.drift.dead_exports.count`, `health_report.drift.coverage_trend.delta`, `health_report.drift.dependency_vuln.critical + health_report.drift.dependency_vuln.high`, `health_report.drift.stale_config.count`
+3. Extract fitness metrics: `health_report.fitness.passed`, `health_report.fitness.total_rules`, `health_report.fitness.required_missing`
 4. Extract required status: check `acknowledged_required_issues` in the state file
 5. If `health_report` is absent from the state file, skip this section silently
 

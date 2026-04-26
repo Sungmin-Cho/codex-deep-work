@@ -10,6 +10,7 @@
 - deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) 와 v6.4.0 integration fixtures 를 복원하고, JSON fixture/schema 의 invalid HTML migration marker 를 제거. migration marker helper 가 `.json` content 를 변경하지 않도록 정정. 테스트 baseline 은 1322, expected fail 은 97 로 갱신.
 - 리뷰 후속 조치: `gather-signals.sh` 에 남아 있던 process substitution 을 제거하고, legacy import 없이 `.codex` primary state 를 읽는 경로를 테스트에 추가. negative fixture heading 도 기대 실패 모드와 일치하도록 정정.
 - 완료 패스: hook state/registry/worktree/fork 테스트를 `.codex` primary state + Codex hook envelope 기준으로 수렴하고, `set -e` 하의 missing pointer 처리와 Worktree Guard meta-directory allowlist 를 정정. expected fail 은 0 으로 낮춤. 테스트 게이트는 `npm test` 로 tracked test files 만 실행하여 ignored vendor snapshot 을 completion count 에서 제외.
+- v6.4.1 마이그레이션 후속: 누락된 Phase 5 finalize/error helper 와 model-routing migration runtime 을 복원하고, Health Engine fitness preflight/default loading, receipt sensor semantics 강화, sensor detection cache `.codex/` write, 6-phase public metadata 정합화를 반영.
 
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 
@@ -62,18 +63,18 @@
 
 ## 0.1.0 — TBD (Phase E 릴리스)
 
-claude-deep-work v6.4.0 의 Codex CLI 포팅 첫 릴리스 예정 (B-α 스코프).
+claude-deep-work v6.4.1 의 Codex CLI 포팅 첫 릴리스 예정 (B-α 스코프).
 
 ### 주요 기능
 
-- 5단계 auto-flow (Brainstorm → Research → Plan → Implement → Test) 보존
+- 6단계 auto-flow (Brainstorm → Research → Plan → Implement → Test → Integrate) 보존
 - `multi_agent` feature flag 기반 parallel `spawn_agent` 디스패치
 - per-file legacy 상태 import (`.claude/` → `.codex/`) — read-only fallback
 - Receipt schema 의 `tools_used` + `model_used` 필드로 post-hoc tool whitelist 검증 (Codex 가 plugin-level whitelist 미지원이라 사후 신호화)
 - Hook 통합: phase-guard / file-tracker / phase-transition / session-end (`parse_hook_stdin` 통한 envelope 파싱)
-- 마이그레이션 도구 (`scripts/migrate-from-claude/`) — vendor v6.4.0 → v0.1.0
+- 마이그레이션 도구 (`scripts/migrate-from-claude/`) — vendor v6.4.x → v0.1.0
 
-### Semantic Losses (CC v6.4.0 대비, 자세한 내용은 `AGENTS.md` 참조)
+### Semantic Losses (CC v6.4.x 대비, 자세한 내용은 `AGENTS.md` 참조)
 
 - Per-call `model` override (`Agent(model=...)`) — Codex `spawn_agent` 미지원
 - Per-agent `tools` whitelist (frontmatter) — plugin-level 강제 부재 → 자연어 가이드 + post-hoc receipt validation

@@ -5,7 +5,7 @@
   "expansion_required": [
     "${PLUGIN_SHA}"
   ],
-  "expansion_source": "<user_repo>/.agents/plugins/marketplace.json (codex-deep-suite plugin sha)",
+  "expansion_source": "<user_repo>/.agents/plugins/marketplace.json (codex-deep-suite/deep-work plugin sha)",
   "hooks": {
     "SessionStart": [
       {
@@ -13,12 +13,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/update-check.sh",
+            "command": "bash ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/update-check.sh",
             "timeout": 8
           },
           {
             "type": "command",
-            "command": "node ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/sensors/detect.js",
+            "command": "node ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/sensors/detect.js",
             "timeout": 8
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/phase-guard.sh",
+            "command": "bash ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/phase-guard.sh",
             "timeout": 5
           }
         ]
@@ -42,12 +42,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/file-tracker.sh",
+            "command": "bash ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/file-tracker.sh",
             "timeout": 3
           },
           {
             "type": "command",
-            "command": "node ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/sensor-trigger.js",
+            "command": "node ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/sensor-trigger.js",
             "timeout": 3
           }
         ]
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/phase-transition.sh",
+            "command": "bash ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/phase-transition.sh",
             "timeout": 3
           }
         ]
@@ -69,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts/session-end.sh",
+            "command": "bash ~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts/session-end.sh",
             "timeout": 5
           }
         ]

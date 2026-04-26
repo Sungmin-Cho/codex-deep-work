@@ -10,6 +10,7 @@
 - Restored deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) and v6.4.0 integration fixtures, removed invalid HTML migration markers from JSON fixtures/schemas, and taught the migration marker helper to leave `.json` content unmodified. Test baseline is now 1322 with expected fails lowered to 97.
 - Review follow-up: removed the remaining `gather-signals.sh` process substitutions, added coverage for `.codex` primary-state reads without legacy import, and renamed negative fixture headings to match their expected failure modes.
 - Completion pass: migrated hook state/registry/worktree/fork tests to `.codex` primary state and Codex hook envelopes, fixed missing-pointer handling under `set -e`, updated Worktree Guard meta-directory allowlist to `.codex/`, and lowered expected fails to 0. The test gate now runs tracked test files via `npm test`, excluding ignored vendor snapshots from completion counts.
+- v6.4.1 migration follow-up: restored missing Phase 5 finalize/error helpers and model-routing migration runtime, ported Health Engine fitness preflight/default loading, tightened receipt sensor semantics, moved sensor detection cache writes to `.codex/`, and aligned public metadata with the 6-phase flow.
 
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 
@@ -62,18 +63,18 @@
 
 ## 0.1.0 — TBD (Phase E release)
 
-First release planned — Codex CLI port of claude-deep-work v6.4.0 (B-α scope).
+First release planned — Codex CLI port of claude-deep-work v6.4.1 (B-α scope).
 
 ### Highlights
 
-- 5-phase auto-flow (Brainstorm → Research → Plan → Implement → Test) preserved
+- 6-phase auto-flow (Brainstorm → Research → Plan → Implement → Test → Integrate) preserved
 - Parallel `spawn_agent` dispatch via `multi_agent` feature flag
 - Per-file legacy state import (`.claude/` → `.codex/`) — read-only fallback
 - Receipt schema with `tools_used` + `model_used` for post-hoc tool whitelist enforcement (Codex 가 plugin-level whitelist 미지원이라 사후 신호화)
 - Hook integration: phase-guard / file-tracker / phase-transition / session-end (4 hooks via `parse_hook_stdin`)
-- Migration tooling (`scripts/migrate-from-claude/`) for vendor v6.4.0 → v0.1.0
+- Migration tooling (`scripts/migrate-from-claude/`) for vendor v6.4.x → v0.1.0
 
-### Semantic Losses (vs CC v6.4.0, see `AGENTS.md` for details)
+### Semantic Losses (vs CC v6.4.x, see `AGENTS.md` for details)
 
 - Per-call `model` override (`Agent(model=...)`) — Codex `spawn_agent` 미지원
 - Per-agent `tools` whitelist (frontmatter) — plugin-level enforcement 부재 → 자연어 가이드 + post-hoc receipt validation

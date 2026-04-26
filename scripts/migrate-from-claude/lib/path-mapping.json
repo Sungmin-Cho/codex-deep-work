@@ -16,7 +16,7 @@
   "plugin_root_replace": {
     "comment": "OI-7 + Plan-Patch-16 RESOLVED — plugin cache stable path. ${PLUGIN_SHA} 는 A' First-Run Install Pattern 의 install_hooks_template 단계에서 사용자 환경의 marketplace.json 에서 sha 를 읽어 substitute. hooks-template.json 은 placeholder 보존 (install 가이드용), hooks/hooks.json 은 dev_fallback 적용 (개발 시점 직접 실행 가능).",
     "from": "${CLAUDE_PLUGIN_ROOT}",
-    "to": "~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts",
+    "to": "~/.codex/plugins/cache/codex-deep-suite/deep-work/${PLUGIN_SHA}/hooks/scripts",
     "dev_fallback": "$(git rev-parse --show-toplevel)/hooks/scripts",
     "expansion_policy": "install-time-substitute"
   },

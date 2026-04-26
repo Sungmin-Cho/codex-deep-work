@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const { loadRegistry, matchEcosystem, detectEcosystems } = require('./detect.js');
 
 const REGISTRY_PATH = path.join(__dirname, 'registry.json');
@@ -155,6 +156,62 @@ test('JS vs TS distinction: package.json only detects javascript, NOT typescript
     const names = result.ecosystems.map(e => e.name);
     assert.ok(names.includes('javascript'), 'should detect javascript');
     assert.ok(!names.includes('typescript'), 'should NOT detect typescript without tsconfig.json');
+  } finally {
+    cleanupDir(dir);
+  }
+});
+
+test('detectEcosystems avoids slow npx probes for unavailable npm tools', () => {
+  const dir = makeTempDir();
+  const binDir = makeTempDir();
+  const registryPath = path.join(dir, 'registry.json');
+  const originalPath = process.env.PATH;
+
+  try {
+    touch(dir, 'package.json');
+    fs.writeFileSync(registryPath, JSON.stringify({
+      ecosystems: {
+        javascript: {
+          detect: { any_of: ['package.json'] },
+          file_extensions: ['.js'],
+          lint: { cmd: 'npx eslint --format json .', parser: 'eslint' },
+        },
+      },
+    }));
+    const npxPath = path.join(binDir, 'npx');
+    fs.writeFileSync(npxPath, '#!/bin/sh\nsleep 1\nexit 1\n');
+    fs.chmodSync(npxPath, 0o755);
+    process.env.PATH = binDir;
+
+    const start = Date.now();
+    const result = detectEcosystems(dir, registryPath);
+    const elapsed = Date.now() - start;
+
+    assert.ok(elapsed < 500, `detection should not wait for npx, took ${elapsed}ms`);
+    assert.equal(result.ecosystems[0].sensors.lint.tool, 'eslint');
+    assert.equal(result.ecosystems[0].sensors.lint.status, 'not_installed');
+  } finally {
+    process.env.PATH = originalPath;
+    cleanupDir(dir);
+    cleanupDir(binDir);
+  }
+});
+
+test('detect CLI writes cache under .codex, not legacy .claude', () => {
+  const dir = makeTempDir();
+  try {
+    fs.mkdirSync(path.join(dir, '.codex'));
+    fs.mkdirSync(path.join(dir, '.claude'));
+    touch(dir, 'package.json');
+
+    const output = execFileSync(process.execPath, [path.join(__dirname, 'detect.js'), dir], {
+      encoding: 'utf8',
+    });
+    const result = JSON.parse(output);
+
+    assert.ok(Array.isArray(result.ecosystems));
+    assert.equal(fs.existsSync(path.join(dir, '.codex', '.sensor-detection-cache.json')), true);
+    assert.equal(fs.existsSync(path.join(dir, '.claude', '.sensor-detection-cache.json')), false);
   } finally {
     cleanupDir(dir);
   }

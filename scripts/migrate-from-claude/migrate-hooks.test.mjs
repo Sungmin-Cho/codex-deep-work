@@ -269,6 +269,8 @@ describe('migrate-hooks generateHooksTemplate', () => {
     assert.ok(tmpl.description.includes('first-run'));
     // Plan-Patch-6: plugin cache 경로
     assert.match(JSON.stringify(tmpl), /\.codex\/plugins\/cache/);
+    assert.match(JSON.stringify(tmpl), /codex-deep-suite\/deep-work\/\$\{PLUGIN_SHA\}/);
+    assert.doesNotMatch(JSON.stringify(tmpl), /cache\/codex-deep-work\/\$\{PLUGIN_SHA\}/);
   });
 });
 

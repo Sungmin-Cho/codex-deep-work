@@ -5,7 +5,7 @@ allowed-tools: Skill, Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestio
 
 # /deep-work
 
-Evidence-Driven Development Protocol — Brainstorm → Research → Plan → Implement → Test 자동 진행.
+Evidence-Driven Development Protocol — Brainstorm → Research → Plan → Implement → Test → Integrate 자동 진행.
 
 the deep-work-orchestrator skill
 

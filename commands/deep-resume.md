@@ -211,7 +211,7 @@ Omit lines that don't apply to the current phase (e.g., don't show 체크리스�
 Before dispatching to the phase skill, delete any stale phase cache to ensure a clean resume:
 
 ```bash
-rm -f .claude/.phase-cache-${SESSION_ID} 2>/dev/null
+rm -f .codex/.phase-cache-${SESSION_ID} 2>/dev/null
 ```
 
 Where `${SESSION_ID}` is the resolved session ID from Step 1.

@@ -8,12 +8,12 @@ description: |
 
   <example>
   Context: zero-base project, solo mode, full research
-  prompt: "area=full; work_dir=/.../deep-work; task=Build a CLI for X"
+  prompt: "area=full; work_dir=/.../deep-work; target_root=/repo; task=Build a CLI for X"
   </example>
 
   <example>
   Context: zero-base, team mode parallel, tech-stack area
-  prompt: "area=tech-stack; work_dir=...; task=..."
+  prompt: "area=tech-stack; work_dir=...; target_root=...; task=..."
   </example>
 model: inherit
 color: cyan
@@ -38,7 +38,7 @@ data models from scratch — use authoritative web sources to back recommendatio
 
 # Input (prompt contract)
 - area: full | tech-stack | conventions | data-model
-- work_dir, task
+- work_dir, target_root, task
 - (optional) re_run_area: null | tech-stack | conventions | data-model | full
 - (optional) incremental_since: git commit hash (rarely meaningful for zero-base)
 
@@ -46,7 +46,7 @@ data models from scratch — use authoritative web sources to back recommendatio
 1. Context7 MCP (mcp__plugin_context7_context7__*): official library docs
    — preferred over web search for well-known frameworks
 2. WebSearch / WebFetch: ecosystem trends, benchmarks, comparisons, release notes
-3. Local hints: any existing AGENTS.md, package.json, pyproject.toml in work_dir
+3. Local hints: any existing AGENTS.md, package.json, pyproject.toml in target_root
 
 # Output
 - area=full (solo call): write `$WORK_DIR/research.md` directly (final artifact)
@@ -65,6 +65,7 @@ Return to caller: { path, summary (≤5 lines), sources_cited: [URL, ...] }
 
 # Rules
 - DO NOT scaffold or create project files — research only
+- Analyze local hints under `target_root`; write only to `work_dir`.
 - Cite sources (URL + fetch date) for any non-obvious claim
 - If Context7 has the library, prefer it over generic web search
 - On re-run (re_run_area or incremental_since set), overwrite existing

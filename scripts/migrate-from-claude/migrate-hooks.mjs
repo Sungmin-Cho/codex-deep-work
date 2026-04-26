@@ -337,11 +337,11 @@ parse_hook_stdin() {
 export function generateHooksTemplate(cc) {
   const transformed = transformHooksJson(cc, 'template');
   return {
-    description: 'codex-deep-work first-run install template — copy into <repo>/.codex/hooks.json (A\' First-Run Install Pattern, OI-11). ${PLUGIN_SHA} 는 install 시 사용자 환경의 marketplace.json sha 로 substitute.',
+    description: 'codex-deep-work first-run install template — copy into <repo>/.codex/hooks.json (A\' First-Run Install Pattern, OI-11). ${PLUGIN_SHA} 는 install 시 사용자 환경의 codex-deep-suite/deep-work marketplace sha 로 substitute.',
     version: '0.1.0',
     install_target: '<repo>/.codex/hooks.json',
     expansion_required: ['${PLUGIN_SHA}'],
-    expansion_source: '<user_repo>/.agents/plugins/marketplace.json (codex-deep-suite plugin sha)',
+    expansion_source: '<user_repo>/.agents/plugins/marketplace.json (codex-deep-suite/deep-work plugin sha)',
     ...transformed,
   };
 }
