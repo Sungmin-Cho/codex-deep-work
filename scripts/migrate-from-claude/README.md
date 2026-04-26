@@ -23,7 +23,7 @@ Forked from `gemini-deep-suite/scripts/`. Adapted for Codex CLI under B-α scope
 - `tool-mapping.json` — B-α tool conversion rules
 - `path-mapping.json` — `.claude/` state path rules (read/write classification, **not literal_replace** per C-PA1)
 - `allowlist-claude-fallback.json` — `.claude/` literal allowed paths (utils.sh, fallback code)
-- `allowlist-bα-tokens.json` — Markdown educational token allowlist (Section 3-6 tables, AGENTS.md Semantic losses)
+- `allowlist-b-alpha-tokens.json` — Markdown educational token allowlist (Section 3-6 tables, AGENTS.md Semantic losses). Filename uses ASCII transliteration of `bα` for Windows tooling / npm tarball compatibility (5차 W5).
 - `transformers.mjs` — AST/regex helpers
 
 ## Idempotency policy

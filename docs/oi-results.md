@@ -246,12 +246,160 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
-## OI-2: update_plan 시그니처 (Medium) — **DEFERRED to Phase B**
+## fixture leftover 47건 분류 (부록 F #10) — **PARTIALLY RESOLVED (Phase C, 2026-04-26)**
+
+- spec / handoff: "정규식 1차 변환의 multi-statement 한계로 잔존, Phase C
+  사람 검토에서 0 도달".
+
+- 50 사이트 분류 (47 + 3 신규 코멘트):
+  - **의도된 backward-compat** (~21건): 5 hook scripts 의 auto-injected
+    `parse_hook_stdin` exports (`CLAUDE_TOOL_USE_*` aliases × 3) — vendor
+    downstream 의 env-var fallback 코드와 호환 유지. `lib/utils.sh` 의
+    `parse_hook_stdin` 함수 정의도 정상.
+  - **Migration tooling** (5건): `verify-migration.sh` 의 검증 regex,
+    `extract-cc-hardcodes.sh` 의 추출 패턴 — 정상 패턴 인식.
+  - **코멘트/문서** (~5건): 본 세션 추가 (file-tracker.sh, phase-guard.sh,
+    input-parsing-e2e.test.js 등의 마이그레이션 안내 코멘트).
+  - **Test fixture redundancy** (4건 정리): phase-guard-hardening.test.js 의
+    `env.CLAUDE_TOOL_USE_TOOL_NAME='Write'` 4 사이트 — `runPhaseGuard` helper
+    가 envelope 으로 tool_name 전달하므로 env var 는 무의미한 중복.
+    부록 F #9 의 helper envelope wrap 적용 후 redundant — 정리.
+  - **잔여 test fixture 마이그레이션 후보** (~16건): file-tracker-portability,
+    receipt-race, phase-transition-cache, input-parsing-e2e 의 직접 spawnSync
+    env-var fixture. 이들은 모두 베이스라인 137 fail 에 이미 포함된 테스트의
+    fixture 이며, envelope 마이그레이션이 pass 로 전환되는지 미보장. **Phase D**
+    작업 (또는 별도 fixture cleanup commit) 으로 인계.
+
+- 결론: 부록 F #10 은 "47 → 0 도달" 보다 "분류 + 의도된 vs 중복 vs Phase D
+  분리" 가 더 정확한 산출물. parse_hook_stdin 가 5 backward-compat aliases
+  를 export 하는 한 vendor 의 `${CLAUDE_TOOL_USE_TOOL_NAME:-...}` 코드는
+  영구 호환되므로 0 도달은 비목표.
+
+- 검증: ALL CHECKS PASS, 1314/1178/136 베이스라인 유지 (회귀 0).
+
+---
+
+## ambiguous state path TODO 마커 (부록 F #7) — **RESOLVED (Phase C, 2026-04-26, no-op)**
+
+- spec / handoff doc: "Plan-Patch-5 의 applyStatePathReplace 가 분류 못 한
+  quoted bare path 사이트의 read/write 결정"
+
+- 검증:
+  - `migrate-hooks.mjs:242` 의 ambiguous 마커 emission 인프라 정상 (`# TODO(Phase-C):
+    ambiguous .claude/deep-work* path access at vendor lines X,Y...` 자동 prepend)
+  - 직접 테스트 (fake vendor with bare quoted path) — 마커 emission 동작 확인 ✓
+  - 그러나 실제 마이그레이션된 hooks/sensors/health/ 파일에 **0 마커** 잔존
+  - 즉 Phase B 의 Plan-Patch-5 (read/write/ambiguous 3-way 분류) 가 v6.4.0
+    vendor 의 모든 quoted bare path 사이트를 정확히 분류 → ambiguous 분기
+    실제로 fire 안 함
+
+- 결론: 부록 F #7 은 verification only — 추가 작업 불필요. 마커 emission
+  인프라는 미래 vendor 변경 (예: v6.5.0+) 시 신규 ambiguous 패턴 발생 대비.
+
+- 검증: ALL CHECKS PASS, 베이스라인 그대로.
+
+---
+
+## assumptions.json receipt 검증 강화 (부록 F #4) — **RESOLVED (Phase C, 2026-04-26)**
+
+- spec line 484: "assumptions.json receipt 검증 룰 강화 — `tools_used` 필드 +
+  `model_used` 필드 추가, agent 별 화이트리스트 위반을 사후 신호화."
+
+- 적용:
+  - `assumptions.json` 신규 생성 (vendor v6.4.0 의 6개 assumption 마이그레이션 +
+    7번째 `post_hoc_tool_whitelist_enforcement` 추가). 이전엔 codex-deep-work
+    레포에 부재 (vendor 만 보유).
+  - `hooks/scripts/receipt-migration.js` V1_DEFAULTS 에 `tools_used: []` 추가.
+    `model_used: 'unknown'` 은 이미 존재.
+  - `hooks/scripts/file-tracker.sh` receipt 초기 생성에 `tools_used: []` +
+    `model_used: ${MODEL:-unknown}` 필드 포함. parse_hook_stdin 가 envelope
+    `.model` 에서 추출한 `MODEL` env 활용.
+  - `hooks/scripts/file-tracker.sh` 갱신 단계에 `tools_used` dedup-append 로직
+    추가 — TOOL_NAME 인자 추가 (lock 보호된 update 블록 안에서).
+  - `hooks/scripts/receipt-migration.test.js` 에 2 신규 테스트 (default value +
+    pre-existing 보존).
+
+- 후속 (Phase D 또는 별도 commit):
+  - `hooks/scripts/verify-receipt-core.js` 가 `tools_used` 배열을 agent 의
+    자연어 tools 가이드와 대조하는 actual validation 로직. 현재는 receipt
+    schema 갖추는 단계만 — validation 의 정확한 알고리즘 (regex / NLP / agents
+    yaml lookup) 은 별도 설계 필요.
+  - agent .md 본문의 자연어 tools 가이드 표준화 ("You may only use Read/Grep
+    tools — do not run Bash") 가 verify 알고리즘의 input.
+
+- 검증: ALL CHECKS PASS, 1314/1178/136 (1단계 baseline 1312 → +2 신규 receipt
+  tests + 0 회귀).
+
+---
+
+## Plan-Patch-7 Phase-C TODO (부록 F #6) — **RESOLVED (Phase C, 2026-04-26)**
+
+- migrate-hooks.mjs `injectStdinParser` 가 vendor 의 pre-existing `$(cat)` 가
+  있는 hook 스크립트에는 stdin double-consumption 회피 위해 자동 inject skip
+  → `# TODO(Phase-C)` 마커 잔존.
+
+- 검증 후 Codex 환경 부정합 발견:
+  - vendor `TOOL_INPUT="$(cat)"` 가 stdin envelope 통째로 읽음
+    (Codex 도 envelope 형식: `{tool_name, tool_input, hook_event_name, ...}`)
+  - 그러나 vendor 의 downstream `extract_file_path_from_json "$TOOL_INPUT"` 은
+    inner `{file_path: ...}` 만 기대 → empty 반환 (broken in Codex)
+  - vendor `TOOL_NAME="${CLAUDE_TOOL_USE_TOOL_NAME:-...}"` env-var fallback 도
+    Codex 환경에선 미설정 → empty
+  - phase-transition.sh 의 cache read 도 envelope 받아서 file_path 추출 실패
+
+- 정정 (3 사이트 통합):
+  - `hooks/scripts/file-tracker.sh:28-29` (1 사이트): `$(cat) + env-var` → `parse_hook_stdin`
+  - `hooks/scripts/phase-guard.sh:104-105` (PHASE5 분기): 동일 — 단 `_P5_INPUT`/`_P5_TOOL` 변수명 보존 (parser-set TOOL_INPUT/TOOL_NAME 으로부터 할당)
+  - `hooks/scripts/phase-guard.sh:545-546` (정상 분기): 동일
+  - 두 분기 mutually exclusive (PHASE5_MODE → branch 1 + exit, else → branch 2) 라 stdin 한번씩 읽힘
+  - `parse_hook_stdin` 함수가 envelope JSON 파싱 + TOOL_NAME/TOOL_INPUT/HOOK_EVENT/SESSION_ID/TURN_ID/MODEL 설정 + 5 backward-compat env aliases export
+
+- 부수 발견:
+  - file-tracker.sh 의 cache 가 이제 envelope 대신 inner tool_input 만 저장 →
+    phase-transition.sh 의 cache-read 시 extract_file_path_from_json 정상 동작
+    (이전엔 envelope 읽어 fail 하는 pre-existing bug)
+  - file-tracker-fixes.test.js 의 4 stdin cache 테스트가 vendor 식 non-envelope
+    fixture 사용 → envelope format 으로 갱신 (production 일치)
+
+- 잔존 TODO(Phase-C) 마커 2건:
+  - `hooks/scripts/input-parsing-e2e.test.js:2` (Plan-Patch-22 multi-level nesting fixture, 부록 F #9 영역)
+  - `hooks/scripts/phase-guard-hardening.test.js:2` (동일)
+
+- 검증: verify-migration.sh ALL CHECKS PASS, 1312 tests / 1176 pass / 136 fail
+  베이스라인 유지 (신규 회귀 0).
+
+---
+
+## SendMessage 패턴 1 vs 2 분류 (부록 F #1) — **RESOLVED (Phase C, 2026-04-26)**
+
+- spec Section 3-6 line 478-479 의 두 패턴 분리 정의:
+  - Pattern 1 (parallel aggregation): N worker 동시 + main aggregate. B-α 보존.
+  - Pattern 2 (sequential chain + 양방향 receipt): team namespace + 양방향 메시지. B-α 에서 sequential chain (spec→test→impl) 으로 축소 의도.
+
+- 검증 결과:
+  - **Pattern 1**: deep-implement SKILL.md Branch B (line 363-380) 가 `Agent` N parallel + main receipt aggregate 로 정확 보존 ✓
+  - **Pattern 2**: deep-implement SKILL.md Branch A (line 331-359) 가 deadwood 처리 — spec 의 "sequential chain 변환" 옵션 미적용
+  - **이유**: v6.4.0 의 `implement-slice-worker` agent 본문에 SendMessage 0건 — worker-to-worker 양방향 통신 부재 (receipt-file 기반) → sequential chain 변환 불필요
+  - **결과**: env_var 활성 시 Branch B (pattern 1) 로 fall-through. spec ↔ skill 의식적 결정 차이를 deadwood marker 에 명시.
+  - commands/*.md frontmatter 의 `allowed-tools: ... SendMessage` 잔존은 spec line 208 ("frontmatter 유지") 의도와 일치 ✓
+  - AGENTS.md line 51-52 의 mapping table 은 spec 의 분류와 일치 ✓
+  - agents/implement-slice-worker.md SendMessage 0건 ✓
+
+- 변경 commit: (Phase C resume 세션, deep-implement SKILL.md Branch A deadwood marker 보강)
+
+---
+
+## OI-2: update_plan 시그니처 (Medium) — **RESOLVED (Phase C, 2026-04-26)**
 
 - 처리 정책: spec line 617 ("Medium / deep-implement skill 마이그레이션 시") 따름
 - Phase A 에서는 검증/측정 안 함
-- Phase B step 9 (`migrate-skills.mjs`) 가 deep-implement skill 변환 시점에 `update_plan` 시그니처 검증
-- 정확한 시그니처 미확인 시 fallback: TaskCreate/Update/List/Get → 자연어 "plan 갱신" 변환 (현재 spec Section 3-1 기본값)
+- Phase C 부록 F #5 검증 (2026-04-26):
+  - skills/deep-implement/SKILL.md 에서 `update_plan` 참조 1건 발견 (Branch A pseudo-code, line 341)
+  - 검증 결과: 잘못된 vocabulary — `subject`/`description` (TaskCreate 필드) 를 `update_plan` 에 사용
+  - 정정: Codex `update_plan({plan: [{step, status}]})` 시그니처에 맞게 step 단일 필드로 통합 + status enum (pending/in_progress/completed) 명시
+  - 추가 발견: Branch A 전체가 B-α 미지원 (TeamCreate/SendMessage/TeamDelete 모두 미지원) → deadwood 마커 추가
+  - skills/deep-research/SKILL.md:170 의 `update_plan` 참조는 historical (제거된 분기) — fix 불필요
+- 변경 commit: (Phase C resume 세션)
 
 ---
 
@@ -410,7 +558,7 @@ assumptions.json 의 receipt 검증 룰 강화 (Task 6 / Phase B step 17):
 
 | OI | 상태 | Phase B 영향 |
 |---|---|---|
-| OI-2 | ⏸ DEFERRED to Phase B step 9 | `update_plan` 시그니처 검증 시 |
+| OI-2 | ✅ RESOLVED (Phase C 부록 F #5, 2026-04-26) | deep-implement SKILL.md 의 `update_plan` 호출 정정 + Branch A B-α 미지원 마커 |
 | OI-4 | ✅ RESOLVED + 확장 (codex_hooks 추가) | plugin.json + AGENTS.md 갱신 (multi_agent + codex_hooks) |
 | OI-5 | ✅ RESOLVED — `codex plugin marketplace add` | spec Section 4-4/5-2/5-5 명령어 정정 |
 | OI-8 | ✅ RESOLVED — 메커니즘 부재, spec 현행 | assumptions.json 강화 (Phase B step 17) |

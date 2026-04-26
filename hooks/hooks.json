@@ -1,0 +1,73 @@
+{
+  "description": "Phase enforcement, file tracking, update check, and session lifecycle hooks (v6.3.0)",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $(git rev-parse --show-toplevel)/hooks/scripts/update-check.sh",
+            "timeout": 8
+          },
+          {
+            "type": "command",
+            "command": "node $(git rev-parse --show-toplevel)/sensors/detect.js",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $(git rev-parse --show-toplevel)/hooks/scripts/phase-guard.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $(git rev-parse --show-toplevel)/hooks/scripts/file-tracker.sh",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "node $(git rev-parse --show-toplevel)/hooks/scripts/sensor-trigger.js",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $(git rev-parse --show-toplevel)/hooks/scripts/phase-transition.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $(git rev-parse --show-toplevel)/hooks/scripts/session-end.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

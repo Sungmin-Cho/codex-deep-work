@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# migrated-by: codex-migrate v0.1
+# --- begin codex-hook-stdin-parser (auto-injected) ---
+STDIN_JSON=$(cat)
+TOOL_NAME=$(printf '%s' "$STDIN_JSON" | jq -r '.tool_name // empty')
+TOOL_INPUT=$(printf '%s' "$STDIN_JSON" | jq -c '.tool_input // {}')
+HOOK_EVENT=$(printf '%s' "$STDIN_JSON" | jq -r '.hook_event_name // empty')
+SESSION_ID=$(printf '%s' "$STDIN_JSON" | jq -r '.session_id // empty')
+TURN_ID=$(printf '%s' "$STDIN_JSON" | jq -r '.turn_id // empty')
+MODEL=$(printf '%s' "$STDIN_JSON" | jq -r '.model // empty')
+export TOOL_NAME TOOL_INPUT HOOK_EVENT SESSION_ID TURN_ID MODEL
+# Backward-compat env aliases — vendor extract-cc-hardcodes.sh 의 ENV_VARS 5종 모두.
+export CLAUDE_TOOL_USE_TOOL_NAME="$TOOL_NAME"
+export CLAUDE_TOOL_NAME="$TOOL_NAME"
+export CLAUDE_TOOL_USE_TOOL_INPUT="$TOOL_INPUT"
+export CLAUDE_TOOL_INPUT="$TOOL_INPUT"
+export CLAUDE_TOOL_USE_INPUT="$TOOL_INPUT"
+# --- end codex-hook-stdin-parser ---
+# state-path migrated by codex-migrate v0.1
+# phase-transition.sh — PostToolUse hook: phase 전환 감지 → 조건 checklist injection
+#
+# state 파일의 current_phase가 변경되면 worktree_path, team_mode 등
+# 핵심 조건을 stdout으로 출력하여 LLM context에 주입한다.
+#
+# Exit codes:
+#   0 = always (PostToolUse hooks are informational, never block)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/utils.sh"
+
+init_deep_work_state
+
+# ─── Read tool input ─────────────────────────────────────
+# PostToolUse hooks 배열에서 앞선 hook(file-tracker.sh)이 stdin을 소비하므로
+# 여기서는 stdin을 읽을 수 없다. v6.2.4 이전: CLAUDE_TOOL_INPUT 환경변수를
+# 시도했지만 이는 Claude Code hook 프로토콜에 정의되어 있지 않아 프로덕션
+# 에서는 사실상 빈 문자열이었다. 이제는 file-tracker.sh가 stdin을 읽으며
+# $PPID 키로 캐시해 두고, 우리가 그 캐시 파일을 읽는다. 환경변수도
+# 혹시 미래 버전에서 설정될 가능성을 고려해 우선 확인한다.
+TOOL_INPUT="${CLAUDE_TOOL_USE_INPUT:-${CLAUDE_TOOL_INPUT:-}}"
+if [[ -z "$TOOL_INPUT" ]]; then
+  _HOOK_INPUT_CACHE="$PROJECT_ROOT/.codex/.hook-tool-input.${PPID}"
+  [[ -f "$_HOOK_INPUT_CACHE" ]] && TOOL_INPUT="$(cat "$_HOOK_INPUT_CACHE" 2>/dev/null || printf '')"
+fi
+[[ -z "$TOOL_INPUT" ]] && exit 0
+
+# ─── 1. State 파일 대상인지 확인 ────────────────────────────
+FILE_PATH="$(extract_file_path_from_json "$TOOL_INPUT")"
+
+[[ -z "$FILE_PATH" ]] && exit 0
+[[ "$FILE_PATH" != *".codex/deep-work."*".md" ]] && exit 0  # state-glob-pattern (codex-migrate)
+
+# ─── 2. Session ID 추출 ────────────────────────────────────
+# Take the LAST segment (innermost `deep-work.XXXX`) and disallow `/` in the
+# captured id, so fork worktree paths like
+# `.deep-work/sessions/deep-work.s-parent/sub/.codex/deep-work.s-child.md`
+# resolve to `s-child`, not a multi-line mess.
+SESSION_ID="$(echo "$FILE_PATH" | grep -o 'deep-work\.[^./]*' | sed 's/deep-work\.//' | tail -1)"
+[[ -z "$SESSION_ID" ]] && exit 0
+
+# ─── 3. 현재 phase 읽기 ────────────────────────────────────
+[[ ! -f "$FILE_PATH" ]] && exit 0
+NEW_PHASE="$(read_frontmatter_field "$FILE_PATH" "current_phase")"
+[[ -z "$NEW_PHASE" ]] && exit 0
+
+# ─── 4. Cache 비교 ─────────────────────────────────────────
+CACHE_DIR="$PROJECT_ROOT/.codex"
+CACHE_FILE="$CACHE_DIR/.phase-cache-${SESSION_ID}"
+OLD_PHASE=""
+[[ -f "$CACHE_FILE" ]] && OLD_PHASE="$(cat "$CACHE_FILE")"
+[[ "$NEW_PHASE" == "$OLD_PHASE" ]] && exit 0
+
+# ─── 5. Cache 업데이트 ─────────────────────────────────────
+echo "$NEW_PHASE" > "$CACHE_FILE"
+
+# ─── 6. State에서 조건 읽기 ────────────────────────────────
+WORKTREE_ENABLED="$(read_frontmatter_field "$FILE_PATH" "worktree_enabled")"
+WORKTREE_PATH="$(read_frontmatter_field "$FILE_PATH" "worktree_path")"
+TEAM_MODE="$(read_frontmatter_field "$FILE_PATH" "team_mode")"
+# cross_model_enabled: nested mapping (codex: true/false, gemini: true/false) 또는 scalar (true/false)
+# read_frontmatter_field는 same-line scalar만 추출하므로, nested mapping 대비 grep으로 보완
+CROSS_MODEL_ENABLED="$(read_frontmatter_field "$FILE_PATH" "cross_model_enabled")"
+if [[ -z "$CROSS_MODEL_ENABLED" ]]; then
+  # Nested mapping인 경우: cross_model_enabled: 아래 줄에 codex: true 또는 gemini: true가 있는지 확인
+  if grep -A3 '^cross_model_enabled:' "$FILE_PATH" 2>/dev/null | grep -q 'true'; then
+    CROSS_MODEL_ENABLED="true"
+  fi
+fi
+TDD_MODE="$(read_frontmatter_field "$FILE_PATH" "tdd_mode")"
+
+# ─── 7. Checklist injection (stdout → LLM context) ────────
+HAS_CONDITIONS=false
+
+OUTPUT=""
+OUTPUT+=$'\n'"━━━ Phase Transition: ${OLD_PHASE:-init} → ${NEW_PHASE} ━━━"$'\n\n'
+
+if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" ]]; then
+  OUTPUT+="📂 worktree_path: $WORKTREE_PATH"$'\n'
+  OUTPUT+="   → 모든 파일 작업은 이 경로 내에서 수행"$'\n'
+  HAS_CONDITIONS=true
+fi
+
+if [[ "$TEAM_MODE" == "team" ]]; then
+  OUTPUT+="👥 team_mode: team"$'\n'
+  OUTPUT+="   → TeamCreate 사용하여 병렬 에이전트 실행"$'\n'
+  HAS_CONDITIONS=true
+fi
+
+if [[ "$CROSS_MODEL_ENABLED" == "true" ]]; then
+  OUTPUT+="🔄 cross_model_enabled: true"$'\n'
+  OUTPUT+="   → 교차 검증 실행 필요"$'\n'
+  HAS_CONDITIONS=true
+fi
+
+if [[ "$NEW_PHASE" == "implement" ]]; then
+  OUTPUT+="🧪 tdd_mode: ${TDD_MODE:-strict}"$'\n'
+  OUTPUT+="   → TDD 프로토콜 준수 (테스트 먼저)"$'\n'
+  HAS_CONDITIONS=true
+fi
+
+OUTPUT+=$'\n'"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 조건이 있을 때만 출력
+if [[ "$HAS_CONDITIONS" == "true" ]]; then
+  printf '%s' "$OUTPUT"
+fi
+
+exit 0

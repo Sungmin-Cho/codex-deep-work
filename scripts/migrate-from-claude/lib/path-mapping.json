@@ -2,41 +2,47 @@
   "version": "0.1.0",
   "comment": "경로 + 함수 API 변환 (C3-A1 + C-PA1 교정 — state 경로는 literal_replace 금지, 함수 API 만 사용).",
   "literal_replace": {
-    "comment": "non-state 리터럴만 (URL/이름/파일명/plugin cache HOME 경로). state 경로(.claude/deep-work/, .claude/.hook-tool-input.* 등) 는 절대 여기 추가 금지.",
-    "claude-deep-work":               "codex-deep-work",
-    "claude-deep-suite":              "codex-deep-suite",
-    "CLAUDE.md":                      "AGENTS.md",
-    "~/.claude/plugins/cache":        "~/.codex/plugins/cache",
-    "$HOME/.claude/plugins/cache":    "$HOME/.codex/plugins/cache"
+    "comment": "non-state 리터럴만 (URL/이름/파일명/plugin cache HOME 경로 + non-state hook cache 경로). state 경로(.claude/deep-work/, .claude/deep-work-{current-session,sessions,profile,guard-errors} 등) 는 절대 여기 추가 금지.",
+    "claude-deep-work": "codex-deep-work",
+    "claude-deep-suite": "codex-deep-suite",
+    "CLAUDE.md": "AGENTS.md",
+    "~/.claude/plugins/cache": "~/.codex/plugins/cache",
+    "$HOME/.claude/plugins/cache": "$HOME/.codex/plugins/cache",
+    ".claude/.hook-tool-input": ".codex/.hook-tool-input",
+    ".claude/.phase-cache-": ".codex/.phase-cache-",
+    "=\"$PROJECT_ROOT/.claude\"": "=\"$PROJECT_ROOT/.codex\"",
+    "find \"$PROJECT_ROOT/.claude\"": "find \"$PROJECT_ROOT/.codex\""
   },
   "plugin_root_replace": {
-    "comment": "OI-7 RESOLVED — Codex 공식 권장 git root 패턴. plugin cache 경로는 A' First-Run Install 후 사용자 repo .codex/ 로 복사된 뒤 동일 패턴 사용.",
+    "comment": "OI-7 + Plan-Patch-16 RESOLVED — plugin cache stable path. ${PLUGIN_SHA} 는 A' First-Run Install Pattern 의 install_hooks_template 단계에서 사용자 환경의 marketplace.json 에서 sha 를 읽어 substitute. hooks-template.json 은 placeholder 보존 (install 가이드용), hooks/hooks.json 은 dev_fallback 적용 (개발 시점 직접 실행 가능).",
     "from": "${CLAUDE_PLUGIN_ROOT}",
-    "to": "$(git rev-parse --show-toplevel)/.codex/hooks/scripts"
+    "to": "~/.codex/plugins/cache/codex-deep-work/${PLUGIN_SHA}/hooks/scripts",
+    "dev_fallback": "$(git rev-parse --show-toplevel)/hooks/scripts",
+    "expansion_policy": "install-time-substitute"
   },
   "state_path_replace": {
     "comment": "C-PA1 교정: state 경로는 함수 API 호출 사이트로 분류 후 read/write 별도 변환. 직접 .codex/deep-work/ 치환 금지.",
     "classification_rules": [
       {
         "scope": "read sites",
-        "match_regex": "(?:cat|jq|grep|read|source|\\[\\[ -[fer] )\\s+[\"']?([^\"']*\\.(claude|codex)/deep-work/[^\"']+)[\"']?",
+        "match_regex": "(?:cat|jq|grep|read|source|\\[\\[ -[fer] |read_frontmatter_field)\\s+[\"']?([^\"']*\\.(claude|codex)/deep-work[/.\\-][^\"']+)[\"']?",
         "transform": "$(read_state_file \"<relative-path>\")",
-        "note": "state 파일을 cat / jq / grep 등으로 *읽는* 호출. 호출 형식 보존, 인자만 함수로 wrap."
+        "note": "state 파일을 cat / jq / grep / source / [[ -f / read_frontmatter_field 등으로 *읽는* 호출. 호출 형식 보존, 인자만 함수로 wrap. Plan-Patch-29: deep-work[/.\\-] (점/대시 모두) + read_frontmatter_field 추가."
       },
       {
         "scope": "write sites",
-        "match_regex": "(?:>|>>|tee|cp\\s+\\S+\\s+|mv\\s+\\S+\\s+)[\"']?([^\"']*\\.(claude|codex)/deep-work/[^\"']+)[\"']?",
+        "match_regex": "(?:>|>>|2>>|tee|cp\\s+\\S+\\s+|mv\\s+\\S+\\s+)[\"']?([^\"']*\\.(claude|codex)/deep-work[/.\\-][^\"']+)[\"']?",
         "transform": "write_state_file \"<relative-path>\" \"<content>\"",
-        "note": "state 파일에 *쓰는* 호출. write_state_file 로 변환."
+        "note": "state 파일에 *쓰는* 호출 (stdout redirect / stderr fd-redirect / tee / mv / cp). write_state_file 로 변환. Plan-Patch-29: 2>> 추가 + deep-work[/.\\-]."
       },
       {
         "scope": "ambiguous",
-        "match_regex": "(?:\"|')\\.?/?(\\.claude|\\.codex)/deep-work/[^\"']+(?:\"|')",
+        "match_regex": "(?:\"|')\\.?/?(\\.claude|\\.codex)/deep-work[/.\\-][^\"']+(?:\"|')",
         "transform": "manual review required",
-        "note": "read/write 분류 모호한 경우 사람 검토 (Phase B step 8 의 hybrid 카테고리)."
+        "note": "read/write 분류 모호한 경우 Phase-C 사람 검토 marker. Plan-Patch-29: deep-work[/.\\-]."
       }
     ],
-    "verify_rule": "verify-migration.sh 가 다음을 fail 처리: (a) `.codex/deep-work/` raw filesystem access 가 wrapper 구현 (utils.sh) 또는 테스트 fixture 외에서 등장하면 fail. (b) `read_state_file`/`write_state_file` 호출 외부의 state 경로 직접 접근 0건 검증."
+    "verify_rule": "verify-migration.sh 가 다음을 fail 처리: (a) `.codex/deep-work[/.\\-]` 또는 `.claude/deep-work[/.\\-]` raw filesystem access 가 wrapper 구현 (utils.sh) 또는 테스트 fixture 외에서 등장하면 fail. (b) read_state_file / write_state_file 호출 외부의 state 경로 직접 접근 0건 검증. (c) Phase D 진입 시 (PHASE_GATE=phase-d) Phase-C TODO 마커 잔존도 fail."
   },
   "deferred": {
     "comment": "OI-7 모두 RESOLVED (Phase A) — deferred 항목 없음. 새 deferred 룰 발견 시 여기 추가."
