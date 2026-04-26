@@ -53,12 +53,16 @@ write_state_file_append() {
 }
 
 # validate_legacy_schema <file>  — returns 0 if file is a valid CC v6.4.0 envelope.
+# /deep-review 2026-04-26 round 2 C3-broken fix: default case 가 bare scalar pointer 파일
+# (e.g., `deep-work-current-session` 의 단순 session ID 한 줄) 을 reject 했음 →
+# init_deep_work_state 의 legacy fallback 이 non-functional. simple ID pattern (3~128자
+# alphanumeric + dash + underscore) 추가. session ID 패턴 (s-XXXX) 자동 매치.
 validate_legacy_schema() {
   local file="$1"
   case "$file" in
     *.json) jq -e '.session_id and .phase' "$file" >/dev/null 2>&1 ;;
     *.md)   head -10 "$file" | grep -qE 'session_id|phase|SESSION' ;;
-    *)      head -1 "$file" | grep -qE '^---|session_id' ;;
+    *)      head -1 "$file" | grep -qE '^---|session_id|^[A-Za-z0-9_-]{3,128}$' ;;
   esac
 }
 

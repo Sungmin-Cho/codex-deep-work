@@ -61,7 +61,7 @@ PROJECT_ROOT="$(find_project_root 2>/dev/null || echo "$PWD")"
 # 부록 F #8 commit 이 read_state_file 로 변경했으나 utils.sh 미source 라 함수 미정의 →
 # `command not found` 가 `2>/dev/null || true` 로 silent 마스킹 → PROFILE_CONTENT 빈 값 →
 # update_check / auto_update 사용자 opt-out 무시.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# round 2 W6: SCRIPT_DIR 은 line 30 에 이미 정의됨 — 중복 제거.
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/utils.sh"
 

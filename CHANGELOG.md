@@ -1,10 +1,23 @@
 # Changelog
 
-## Unreleased — Phase B + C in progress (2026-04-26)
+## Unreleased — Phase C complete + Phase D 진입 (2026-04-26)
 
-### Phase C (사람 검토 + deep-review 응답)
+### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 
-부록 F 의 11 항목 중 8건 완료, 3건 잔여 (#10 fixture leftover, #2/#3 본 항목 + DEFER 7건).
+- **/deep-review 2026-04-26-152137 (3-way)**: 7 critical + 5 W/I 흡수 (commit `b0b30ad`).
+  - C1 update-check.sh source utils.sh — silent regression 해결
+  - C2 utils.sh:262 .claude/ mkdir 제거 — spec 일치
+  - C3 init_deep_work_state legacy fallback (round 2 C3-broken: `validate_legacy_schema` 의 default case 가 bare scalar pointer reject 했던 것 fix — `^[A-Za-z0-9_-]{3,128}$` 패턴 추가)
+  - C4 phase-guard Phase 5 plugin cache `.codex/` 우선 + `.claude/` fallback
+  - C5 verify-migration pass/fail check + `.expected-fail-count = 136` baseline
+  - C6 file-tracker pending sidecar tool_name 보존
+  - C7 commands frontmatter unsupported tools 정리 + update_plan
+- **/deep-review 2026-04-26-155058 (1-way Opus, Codex timeout)**: round 2 — C3 broken + W3 incomplete + 4 warning 흡수.
+
+### Phase C 부록 F (11/11 완료)
+
+- **#5 OI-2** `update_plan` 시그니처 검증: deep-implement Branch A pseudo-code 의 `subject`/`description` (TaskCreate 필드) 잘못된 사용 → `{plan: [{step, status}]}` 시그니처 정정.
+- **#1 SendMessage pattern 분류 검증**: pattern 1 (parallel aggregation) Branch B 보존 ✓; pattern 2 (양방향 receipt) deadwood 명시 (worker SendMessage 0건이라 sequential chain 변환 불필요).
 
 - **#5 OI-2** `update_plan` 시그니처 검증: deep-implement Branch A pseudo-code 의 `subject`/`description` (TaskCreate 필드) 잘못된 사용 → `{plan: [{step, status}]}` 시그니처 정정.
 - **#1 SendMessage pattern 분류 검증**: pattern 1 (parallel aggregation) Branch B 보존 ✓; pattern 2 (양방향 receipt) deadwood 명시 (worker SendMessage 0건이라 sequential chain 변환 불필요).

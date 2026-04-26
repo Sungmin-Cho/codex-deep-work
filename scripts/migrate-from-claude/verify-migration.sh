@@ -43,16 +43,23 @@ else
     fi
   fi
 
-  # Sub-check 1b: actual fail count <= expected_fail (regression detection)
-  if [ "$ACTUAL_FAIL" -gt "$EXPECTED_FAIL" ]; then
-    if [ "$STRICT_MODE" = "1" ]; then
-      echo "FAIL: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; strict mode)"
-      EXIT=1
-    else
-      echo "WARN: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; Phase B 정상)"
+  # Sub-check 1b: actual fail count <= expected_fail (regression detection).
+  # /deep-review 2026-04-26 round 2 W7: numeric guard — `-gt` 가 비숫자 입력에 silent
+  # rc=2 (no -e) 로 false branch 통과하면 regression detection 우회됨. ^[0-9]+$ regex
+  # 검증으로 fail-loud.
+  if [[ "$ACTUAL_FAIL" =~ ^[0-9]+$ ]] && [[ "$EXPECTED_FAIL" =~ ^[0-9]+$ ]]; then
+    if [ "$ACTUAL_FAIL" -gt "$EXPECTED_FAIL" ]; then
+      if [ "$STRICT_MODE" = "1" ]; then
+        echo "FAIL: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; strict mode)"
+        EXIT=1
+      else
+        echo "WARN: test fail count exceeds expected (got $ACTUAL_FAIL, expected ≤ $EXPECTED_FAIL; Phase B 정상)"
+      fi
+    elif [ "$ACTUAL" = "$BASELINE" ] && [ "$ACTUAL_FAIL" -le "$EXPECTED_FAIL" ]; then
+      echo "PASS: test count matches baseline AND fail count ≤ expected ($ACTUAL_FAIL ≤ $EXPECTED_FAIL)"
     fi
-  elif [ "$ACTUAL" = "$BASELINE" ] && [ "$ACTUAL_FAIL" -le "$EXPECTED_FAIL" ]; then
-    echo "PASS: test count matches baseline AND fail count ≤ expected ($ACTUAL_FAIL ≤ $EXPECTED_FAIL)"
+  else
+    echo "WARN: fail count parsing produced non-numeric (actual=$ACTUAL_FAIL expected=$EXPECTED_FAIL) — check verify-migration.sh awk extraction"
   fi
 fi
 
