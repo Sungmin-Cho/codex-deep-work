@@ -103,7 +103,6 @@ describe('phase-guard.sh slice_files enforcement (v6.2.4 — was silently no-op)
     });
     const env = {
       ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
       DEEP_WORK_SESSION_ID: 's-scope1',
     };
     // Use a path that's clearly inside slice_files
@@ -118,7 +117,6 @@ describe('phase-guard.sh slice_files enforcement (v6.2.4 — was silently no-op)
     });
     const env = {
       ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
       DEEP_WORK_SESSION_ID: 's-scope2',
     };
     const result = runPhaseGuard(tmpDir, env, { file_path: 'unrelated.py' });
@@ -134,7 +132,6 @@ describe('phase-guard.sh slice_files enforcement (v6.2.4 — was silently no-op)
     });
     const env = {
       ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
       DEEP_WORK_SESSION_ID: 's-scope3',
     };
     const result = runPhaseGuard(tmpDir, env, { file_path: 'unrelated.py' });
@@ -148,7 +145,6 @@ describe('phase-guard.sh slice_files enforcement (v6.2.4 — was silently no-op)
     });
     const env = {
       ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
       DEEP_WORK_SESSION_ID: 's-scope4',
     };
     const result = runPhaseGuard(tmpDir, env, { file_path: 'anything.py' });

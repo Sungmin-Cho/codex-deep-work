@@ -246,6 +246,39 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
+## fixture leftover 47건 분류 (부록 F #10) — **PARTIALLY RESOLVED (Phase C, 2026-04-26)**
+
+- spec / handoff: "정규식 1차 변환의 multi-statement 한계로 잔존, Phase C
+  사람 검토에서 0 도달".
+
+- 50 사이트 분류 (47 + 3 신규 코멘트):
+  - **의도된 backward-compat** (~21건): 5 hook scripts 의 auto-injected
+    `parse_hook_stdin` exports (`CLAUDE_TOOL_USE_*` aliases × 3) — vendor
+    downstream 의 env-var fallback 코드와 호환 유지. `lib/utils.sh` 의
+    `parse_hook_stdin` 함수 정의도 정상.
+  - **Migration tooling** (5건): `verify-migration.sh` 의 검증 regex,
+    `extract-cc-hardcodes.sh` 의 추출 패턴 — 정상 패턴 인식.
+  - **코멘트/문서** (~5건): 본 세션 추가 (file-tracker.sh, phase-guard.sh,
+    input-parsing-e2e.test.js 등의 마이그레이션 안내 코멘트).
+  - **Test fixture redundancy** (4건 정리): phase-guard-hardening.test.js 의
+    `env.CLAUDE_TOOL_USE_TOOL_NAME='Write'` 4 사이트 — `runPhaseGuard` helper
+    가 envelope 으로 tool_name 전달하므로 env var 는 무의미한 중복.
+    부록 F #9 의 helper envelope wrap 적용 후 redundant — 정리.
+  - **잔여 test fixture 마이그레이션 후보** (~16건): file-tracker-portability,
+    receipt-race, phase-transition-cache, input-parsing-e2e 의 직접 spawnSync
+    env-var fixture. 이들은 모두 베이스라인 137 fail 에 이미 포함된 테스트의
+    fixture 이며, envelope 마이그레이션이 pass 로 전환되는지 미보장. **Phase D**
+    작업 (또는 별도 fixture cleanup commit) 으로 인계.
+
+- 결론: 부록 F #10 은 "47 → 0 도달" 보다 "분류 + 의도된 vs 중복 vs Phase D
+  분리" 가 더 정확한 산출물. parse_hook_stdin 가 5 backward-compat aliases
+  를 export 하는 한 vendor 의 `${CLAUDE_TOOL_USE_TOOL_NAME:-...}` 코드는
+  영구 호환되므로 0 도달은 비목표.
+
+- 검증: ALL CHECKS PASS, 1314/1178/136 베이스라인 유지 (회귀 0).
+
+---
+
 ## ambiguous state path TODO 마커 (부록 F #7) — **RESOLVED (Phase C, 2026-04-26, no-op)**
 
 - spec / handoff doc: "Plan-Patch-5 의 applyStatePathReplace 가 분류 못 한
