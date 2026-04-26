@@ -18,7 +18,7 @@ if [ -z "$BASELINE" ]; then
 else
   # /deep-review 2026-04-26 C5: count 만이 아니라 pass/fail 도 검증. 이전엔 count = count
   # 만 통과해도 ALL CHECKS PASS — 136 fails 가 silently masked.
-  TEST_OUTPUT=$(cd "$PROJECT_ROOT" && node --test 2>&1)
+  TEST_OUTPUT=$(cd "$PROJECT_ROOT" && npm test 2>&1)
   ACTUAL=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] tests [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
   ACTUAL_PASS=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] pass [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)
   ACTUAL_FAIL=$(printf '%s' "$TEST_OUTPUT" | { grep -E "^[ℹ#] fail [0-9]+" || true; } | { awk '{print $3}' || true; } | head -1)

@@ -23,8 +23,6 @@ describe('extract_file_path_from_json', () => {
 
   it('parses path with escaped quotes', () => {
     // Pass as first arg — bash-level single quotes, so the JSON keeps \"
-    const out = runBash(`extract_file_path_from_json "$1"`, {});
-    // Use the second arg form through execFileSync directly:
     const direct = execFileSync(
       'bash',
       ['-c', `source "${UTILS}" && extract_file_path_from_json "$1"`, '--', '{"file_path":"/tmp/a \\"b\\" c.txt"}'],
@@ -196,12 +194,12 @@ describe('write_registry (refactored to use locks)', () => {
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wr-'));
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   it('returns non-zero when lock is held (fail-closed, no force-remove)', () => {
-    const lockPath = path.join(tmpDir, '.claude', 'deep-work-sessions.lock');
+    const lockPath = path.join(tmpDir, '.codex', 'deep-work-sessions.lock');
     fs.mkdirSync(lockPath);
     const result = spawnSync('bash', ['-c', `
       export PROJECT_ROOT="${tmpDir}"

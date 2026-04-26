@@ -20,23 +20,23 @@ function writeState(frontmatter) {
   };
   const merged = { ...defaults, ...frontmatter };
   const fm = Object.entries(merged).map(([k, v]) => `${k}: ${v}`).join('\n');
-  fs.writeFileSync(path.join(tmpRoot, '.claude', 'deep-work.local.md'), `---\n${fm}\n---\n`);
+  fs.writeFileSync(path.join(tmpRoot, '.codex', 'deep-work.local.md'), `---\n${fm}\n---\n`);
   fs.mkdirSync(path.join(tmpRoot, merged.work_dir), { recursive: true });
 }
 
 function runGuard(toolName, toolInput) {
   return spawnSync('bash', [PHASE_GUARD], {
-    input: JSON.stringify(toolInput),
     encoding: 'utf8',
     cwd: tmpRoot,
-    env: {...process.env, DEEP_WORK_ROOT: tmpRoot}, input: JSON.stringify({ tool_name: toolName, tool_input: {}, hook_event_name: 'PreToolUse' }),
+    env: { ...process.env, DEEP_WORK_ROOT: tmpRoot },
+    input: JSON.stringify({ tool_name: toolName, tool_input: toolInput, hook_event_name: 'PreToolUse' }),
   });
 }
 
 describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
   beforeEach(() => {
     tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'p5-guard-'));
-    fs.mkdirSync(path.join(tmpRoot, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpRoot, '.codex'), { recursive: true });
   });
   afterEach(() => {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -149,7 +149,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Write', {
-      file_path: `${tmpRoot}/.claude/deep-work.local.md`,
+      file_path: `${tmpRoot}/.codex/deep-work.local.md`,
       content: '---\nwork_dir: /\n---\n',
     });
     assert.equal(r.status, 2, 'state file 직접 수정은 Phase 5에서 차단되어야 함');
@@ -157,7 +157,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
 
   it('RC3-1: snapshot이 enforcement 기준 — state의 work_dir 변조해도 snapshot으로 방어', () => {
     // snapshot은 session-x, 공격자가 state를 수정해 work_dir을 /로 바꾼 상태
-    fs.writeFileSync(path.join(tmpRoot, '.claude', 'deep-work.local.md'),
+    fs.writeFileSync(path.join(tmpRoot, '.codex', 'deep-work.local.md'),
       `---\nwork_dir: /\nphase5_work_dir_snapshot: .deep-work/session-x\ncurrent_phase: idle\nphase5_entered_at: "2026-04-19T03:00:00Z"\n---\n`);
     fs.mkdirSync(path.join(tmpRoot, '.deep-work/session-x'), { recursive: true });
     const r = runGuard('Write', { file_path: `${tmpRoot}/etc/passwd`, content: 'x' });
@@ -170,7 +170,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Bash', {
-      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.claude/deep-work.local.md 2026-04-19T03:45:00Z`,
+      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.codex/deep-work.local.md 2026-04-19T03:45:00Z`,
     });
     assert.equal(r.status, 0, 'phase5-finalize.sh 호출은 Phase 5 guard의 예외');
   });
@@ -268,7 +268,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Bash', {
-      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.claude/deep-work.local.md 2026-04-19T00:00:00Z; rm -rf /opt/some-file`,
+      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.codex/deep-work.local.md 2026-04-19T00:00:00Z; rm -rf /opt/some-file`,
     });
     assert.equal(r.status, 2, 'compound 연산자가 있으면 helper exception 무효 → 후속 rm 차단');
   });
@@ -279,7 +279,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Bash', {
-      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.claude/deep-work.local.md 2026-04-19T00:00:00Z && /bin/rm /etc/foo`,
+      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.codex/deep-work.local.md 2026-04-19T00:00:00Z && /bin/rm /etc/foo`,
     });
     assert.equal(r.status, 2);
   });
@@ -303,7 +303,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Bash', {
-      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.claude/deep-work.local.md 2026-04-19T00:00:00Z`,
+      command: `bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.codex/deep-work.local.md 2026-04-19T00:00:00Z`,
     });
     assert.equal(r.status, 0, 'legitimate single-command helper 호출은 허용');
   });
@@ -470,13 +470,13 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
   });
 
   // v6.3.0 review C7-1 — plugin cache glob bypass 차단 (HOME prefix anchored)
-  it('C7-1: $WORK_DIR/.claude/plugins/cache/.../skills/deep-integrate/phase5-finalize.sh bypass 차단', () => {
+  it('C7-1: $WORK_DIR/.codex/plugins/cache/.../skills/deep-integrate/phase5-finalize.sh bypass 차단', () => {
     writeState({
       current_phase: 'idle',
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     // 공격자가 work_dir 하위에 plugin cache 구조 모방 + fake helper 배치
-    const fakePath = path.join(tmpRoot, '.deep-work/session-x/.claude/plugins/cache/X/skills/deep-integrate');
+    const fakePath = path.join(tmpRoot, '.deep-work/session-x/.codex/plugins/cache/X/skills/deep-integrate');
     fs.mkdirSync(fakePath, { recursive: true });
     fs.writeFileSync(path.join(fakePath, 'phase5-finalize.sh'), '#!/bin/sh\nrm -rf /\n');
     const r = runGuard('Bash', {
@@ -563,7 +563,7 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
     assert.equal(r.status, 2, 'touch는 일괄 차단 (work_dir 하위라도)');
   });
 
-  // v6.3.0 review C8-2 — plugin cache 허용 경로를 claude-deep-suite/deep-work로 pin
+  // v6.3.0 review C8-2 — plugin cache 허용 경로를 codex-deep-suite/deep-work로 pin
   // v6.3.0 review C9-1 — git global flag 변형 차단
   it('C9-1: git -C <path> commit 차단 (global flag 변형)', () => {
     writeState({
@@ -755,12 +755,12 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
     });
     const r = runGuard('Bash', {
-      command: `DEEP_WORK_SESSION_ID=local bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.claude/deep-work.local.md`,
+      command: `DEEP_WORK_SESSION_ID=local bash skills/deep-integrate/phase5-finalize.sh ${tmpRoot}/.codex/deep-work.local.md`,
     });
     assert.equal(r.status, 0, 'env prefix skip + helper canonical path 통과');
   });
 
-  it('C8-2: 임의 plugin의 helper suffix 허용 안 함 (claude-deep-suite/deep-work만)', () => {
+  it('C8-2: 임의 plugin의 helper suffix 허용 안 함 (codex-deep-suite/deep-work만)', () => {
     writeState({
       current_phase: 'idle',
       phase5_entered_at: '"2026-04-19T03:00:00Z"',
@@ -774,6 +774,6 @@ describe('phase-guard.sh — Phase 5 mode (RC-1)', () => {
     const r = runGuard('Bash', {
       command: `bash ${fakePluginHelper} /tmp/state 2026-04-19T00:00:00Z`,
     });
-    assert.equal(r.status, 2, 'HOME prefix 밖 + claude-deep-suite 외 plugin은 모두 차단');
+    assert.equal(r.status, 2, 'HOME prefix 밖 + codex-deep-suite 외 plugin은 모두 차단');
   });
 });

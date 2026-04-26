@@ -9,6 +9,7 @@
 - Lowered `tests/.expected-fail-count` from 136 to 133 after the deterministic hook portability failures were fixed.
 - Restored deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) and v6.4.0 integration fixtures, removed invalid HTML migration markers from JSON fixtures/schemas, and taught the migration marker helper to leave `.json` content unmodified. Test baseline is now 1322 with expected fails lowered to 97.
 - Review follow-up: removed the remaining `gather-signals.sh` process substitutions, added coverage for `.codex` primary-state reads without legacy import, and renamed negative fixture headings to match their expected failure modes.
+- Completion pass: migrated hook state/registry/worktree/fork tests to `.codex` primary state and Codex hook envelopes, fixed missing-pointer handling under `set -e`, updated Worktree Guard meta-directory allowlist to `.codex/`, and lowered expected fails to 0. The test gate now runs tracked test files via `npm test`, excluding ignored vendor snapshots from completion counts.
 
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 

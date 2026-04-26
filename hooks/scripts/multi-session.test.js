@@ -14,7 +14,7 @@ let tmpDir;
 
 function setup() {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ms-test-'));
-  fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
 }
 
 function cleanup() {
@@ -37,7 +37,7 @@ function bash(code, env = {}) {
 
 function writeRegistryFile(data) {
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', 'deep-work-sessions.json'),
+    path.join(tmpDir, '.codex', 'deep-work-sessions.json'),
     JSON.stringify(data),
   );
 }
@@ -45,7 +45,7 @@ function writeRegistryFile(data) {
 function readRegistryFile() {
   return JSON.parse(
     fs.readFileSync(
-      path.join(tmpDir, '.claude', 'deep-work-sessions.json'),
+      path.join(tmpDir, '.codex', 'deep-work-sessions.json'),
       'utf8',
     ),
   );
@@ -79,21 +79,21 @@ describe('init_deep_work_state', () => {
     const result = bash('init_deep_work_state; echo "$STATE_FILE"', {
       DEEP_WORK_SESSION_ID: 's-abc12345',
     });
-    assert.ok(result.endsWith('/.claude/deep-work.s-abc12345.md'));
+    assert.ok(result.endsWith('/.codex/deep-work.s-abc12345.md'));
   });
 
   it('falls back to pointer file when env var not set', () => {
     fs.writeFileSync(
-      path.join(tmpDir, '.claude', 'deep-work-current-session'),
+      path.join(tmpDir, '.codex', 'deep-work-current-session'),
       's-def67890\n',
     );
     const result = bash('init_deep_work_state; echo "$STATE_FILE"');
-    assert.ok(result.endsWith('/.claude/deep-work.s-def67890.md'));
+    assert.ok(result.endsWith('/.codex/deep-work.s-def67890.md'));
   });
 
   it('falls back to legacy path when no env var or pointer', () => {
     const result = bash('init_deep_work_state; echo "$STATE_FILE"');
-    assert.ok(result.endsWith('/.claude/deep-work.local.md'));
+    assert.ok(result.endsWith('/.codex/deep-work.local.md'));
   });
 });
 
@@ -464,18 +464,18 @@ describe('migrate_legacy_state', () => {
 
   it('migrates active legacy state file and returns new session ID', () => {
     fs.writeFileSync(
-      path.join(tmpDir, '.claude', 'deep-work.local.md'),
+      path.join(tmpDir, '.codex', 'deep-work.local.md'),
       '---\ncurrent_phase: implement\ntask_description: "Legacy task"\n---\n',
     );
     const result = bash('init_deep_work_state; migrate_legacy_state');
     assert.match(result, /^s-[0-9a-f]{8}$/);
     assert.ok(
-      !fs.existsSync(path.join(tmpDir, '.claude', 'deep-work.local.md')),
+      !fs.existsSync(path.join(tmpDir, '.codex', 'deep-work.local.md')),
       'legacy file should be removed after migration',
     );
     // Verify new state file exists
     assert.ok(
-      fs.existsSync(path.join(tmpDir, '.claude', `deep-work.${result}.md`)),
+      fs.existsSync(path.join(tmpDir, '.codex', `deep-work.${result}.md`)),
       'new session state file should exist',
     );
     // Verify registered in registry
@@ -485,13 +485,13 @@ describe('migrate_legacy_state', () => {
 
   it('skips idle legacy state', () => {
     fs.writeFileSync(
-      path.join(tmpDir, '.claude', 'deep-work.local.md'),
+      path.join(tmpDir, '.codex', 'deep-work.local.md'),
       '---\ncurrent_phase: idle\ntask_description: "Done task"\n---\n',
     );
     const result = bash('init_deep_work_state; migrate_legacy_state');
     assert.equal(result, '');
     assert.ok(
-      fs.existsSync(path.join(tmpDir, '.claude', 'deep-work.local.md')),
+      fs.existsSync(path.join(tmpDir, '.codex', 'deep-work.local.md')),
       'idle legacy file should not be touched',
     );
   });

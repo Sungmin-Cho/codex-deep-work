@@ -13,7 +13,7 @@ let tmpDir;
 
 function setup() {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dw-fork-integ-'));
-  fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
 }
 
 function cleanup() {
@@ -35,7 +35,7 @@ function bash(code) {
 
 function writeRegistryFile(data) {
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', 'deep-work-sessions.json'),
+    path.join(tmpDir, '.codex', 'deep-work-sessions.json'),
     JSON.stringify(data),
   );
 }
@@ -43,7 +43,7 @@ function writeRegistryFile(data) {
 function readRegistryFile() {
   return JSON.parse(
     fs.readFileSync(
-      path.join(tmpDir, '.claude', 'deep-work-sessions.json'),
+      path.join(tmpDir, '.codex', 'deep-work-sessions.json'),
       'utf8',
     ),
   );
@@ -58,14 +58,14 @@ function writeStateFile(sessionId, frontmatter) {
     })
     .join('\n');
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', `deep-work.${sessionId}.md`),
+    path.join(tmpDir, '.codex', `deep-work.${sessionId}.md`),
     `---\n${yaml}\n---\n`,
   );
 }
 
 function readStateFile(sessionId) {
   return fs.readFileSync(
-    path.join(tmpDir, '.claude', `deep-work.${sessionId}.md`),
+    path.join(tmpDir, '.codex', `deep-work.${sessionId}.md`),
     'utf8',
   );
 }
@@ -288,12 +288,12 @@ describe('Fork edge cases', () => {
 
   it('should reject forking an idle session', () => {
     writeStateFile('s-idle0001', { current_phase: 'idle', task_description: 'done' });
-    const result = bash('validate_fork_target "$PROJECT_ROOT/.claude/deep-work.s-idle0001.md" 2>&1 || true');
+    const result = bash('validate_fork_target "$PROJECT_ROOT/.codex/deep-work.s-idle0001.md" 2>&1 || true');
     assert.match(result, /idle/);
   });
 
   it('should reject forking a nonexistent session', () => {
-    const result = bash('validate_fork_target "$PROJECT_ROOT/.claude/deep-work.s-nope.md" 2>&1 || true');
+    const result = bash('validate_fork_target "$PROJECT_ROOT/.codex/deep-work.s-nope.md" 2>&1 || true');
     assert.match(result, /not found|존재하지/);
   });
 
@@ -308,13 +308,13 @@ describe('Fork edge cases', () => {
 
   it('should accept forking an active plan-phase session', () => {
     writeStateFile('s-plan0001', { current_phase: 'plan', task_description: 'planning' });
-    const result = bash('validate_fork_target "$PROJECT_ROOT/.claude/deep-work.s-plan0001.md"');
+    const result = bash('validate_fork_target "$PROJECT_ROOT/.codex/deep-work.s-plan0001.md"');
     assert.equal(result, 'valid');
   });
 
   it('should accept forking an active implement-phase session', () => {
     writeStateFile('s-impl0001', { current_phase: 'implement', task_description: 'coding' });
-    const result = bash('validate_fork_target "$PROJECT_ROOT/.claude/deep-work.s-impl0001.md"');
+    const result = bash('validate_fork_target "$PROJECT_ROOT/.codex/deep-work.s-impl0001.md"');
     assert.equal(result, 'valid');
   });
 });
@@ -360,8 +360,8 @@ describe('Git worktree fork', () => {
     fs.writeFileSync(path.join(gitDir, 'README.md'), '# Test\n');
     execFileSync('git', ['-C', gitDir, 'add', '.'], { encoding: 'utf8' });
     execFileSync('git', ['-C', gitDir, 'commit', '-m', 'initial'], { encoding: 'utf8' });
-    // Create .claude directory for state files
-    fs.mkdirSync(path.join(gitDir, '.claude'), { recursive: true });
+    // Create .codex directory for state files
+    fs.mkdirSync(path.join(gitDir, '.codex'), { recursive: true });
   });
 
   after(() => {

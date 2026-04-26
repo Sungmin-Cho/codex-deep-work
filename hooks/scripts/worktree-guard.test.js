@@ -12,7 +12,7 @@ let tmpDir;
 
 function setup() {
   tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'wt-guard-')));
-  fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
 }
 
 function cleanup() {
@@ -26,24 +26,25 @@ function writeStateFile(sessionId, fields) {
   const yaml = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
   const content = `---\n${yaml}\n---\n`;
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', `deep-work.${sessionId}.md`),
+    path.join(tmpDir, '.codex', `deep-work.${sessionId}.md`),
     content
   );
 }
 
 function writePointerFile(sessionId) {
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', 'deep-work-current-session'),
+    path.join(tmpDir, '.codex', 'deep-work-current-session'),
     sessionId
   );
 }
 
 function runPhaseGuard(toolName, toolInput, env = {}) {
   try {
-    const result = execFileSync('bash', ['-c', `echo '${JSON.stringify(toolInput).replace(/'/g, "'\\''")}' | CLAUDE_TOOL_NAME=${toolName} bash "${PHASE_GUARD}"`], {
+    const result = execFileSync('bash', [PHASE_GUARD], {
       encoding: 'utf8',
       cwd: tmpDir,
       env: { ...process.env, ...env },
+      input: JSON.stringify({ tool_name: toolName, tool_input: toolInput, hook_event_name: 'PreToolUse' }),
       timeout: 10000,
     });
     return { exitCode: 0, stdout: result };
@@ -97,7 +98,7 @@ describe('P0: Worktree Path Guard', () => {
     assert.equal(result.exitCode, 0);
   });
 
-  it('allows meta directory writes (.claude/, .deep-work/) outside worktree', () => {
+  it('allows meta directory writes (.codex/, .deep-work/) outside worktree', () => {
     const sid = 's-test3';
     const worktreePath = path.join(tmpDir, '.worktrees', 'dw', 'test-branch');
     fs.mkdirSync(worktreePath, { recursive: true });
@@ -111,7 +112,7 @@ describe('P0: Worktree Path Guard', () => {
     writePointerFile(sid);
 
     const result = runPhaseGuard('Write', {
-      file_path: path.join(tmpDir, '.claude', 'some-config.json'),
+      file_path: path.join(tmpDir, '.codex', 'some-config.json'),
     });
 
     assert.equal(result.exitCode, 0);
@@ -178,7 +179,7 @@ describe('P0: Worktree Path Guard', () => {
     assert.ok(result.stdout.includes('Worktree Guard'));
   });
 
-  it('blocks external .claude/ path (C-3: prevents substring bypass)', () => {
+  it('blocks external .codex/ path (C-3: prevents substring bypass)', () => {
     const sid = 's-test7';
     const worktreePath = path.join(tmpDir, '.worktrees', 'dw', 'test-branch');
     fs.mkdirSync(worktreePath, { recursive: true });
@@ -191,9 +192,9 @@ describe('P0: Worktree Path Guard', () => {
     });
     writePointerFile(sid);
 
-    // External .claude/ path should NOT be allowed — only PROJECT_ROOT/.claude/ is exempt
+    // External .codex/ path should NOT be allowed — only PROJECT_ROOT/.codex/ is exempt
     const result = runPhaseGuard('Write', {
-      file_path: '/tmp/evil/.claude/malicious-config.json',
+      file_path: '/tmp/evil/.codex/malicious-config.json',
     });
 
     assert.equal(result.exitCode, 2);

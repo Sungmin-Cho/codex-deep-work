@@ -9,6 +9,7 @@
 - deterministic hook portability 실패 3건 해소 후 `tests/.expected-fail-count` 를 136 → 133 으로 낮춤.
 - deep-integrate runtime scripts (`detect-plugins.sh`, `gather-signals.sh`) 와 v6.4.0 integration fixtures 를 복원하고, JSON fixture/schema 의 invalid HTML migration marker 를 제거. migration marker helper 가 `.json` content 를 변경하지 않도록 정정. 테스트 baseline 은 1322, expected fail 은 97 로 갱신.
 - 리뷰 후속 조치: `gather-signals.sh` 에 남아 있던 process substitution 을 제거하고, legacy import 없이 `.codex` primary state 를 읽는 경로를 테스트에 추가. negative fixture heading 도 기대 실패 모드와 일치하도록 정정.
+- 완료 패스: hook state/registry/worktree/fork 테스트를 `.codex` primary state + Codex hook envelope 기준으로 수렴하고, `set -e` 하의 missing pointer 처리와 Worktree Guard meta-directory allowlist 를 정정. expected fail 은 0 으로 낮춤. 테스트 게이트는 `npm test` 로 tracked test files 만 실행하여 ignored vendor snapshot 을 completion count 에서 제외.
 
 ### Phase D 진입 + deep-review round 2/3 응답 (2026-04-26 후반)
 

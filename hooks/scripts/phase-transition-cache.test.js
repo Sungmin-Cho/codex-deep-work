@@ -93,12 +93,17 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
 
     // Spawn both hooks sequentially, sharing PPID (this node process).
     // Step 1: file-tracker.sh writes cache.
-    const toolInput = JSON.stringify({ file_path: stateFile });
     const ft = spawnSync('bash', [FILE_TRACKER], {
-      input: toolInput,
       cwd: tmpDir,
-      env: {...process.env,
-        DEEP_WORK_SESSION_ID: sid}, input: JSON.stringify({ tool_name: 'Write', tool_input: {}, hook_event_name: 'PreToolUse' }),
+      env: {
+        ...process.env,
+        DEEP_WORK_SESSION_ID: sid,
+      },
+      input: JSON.stringify({
+        tool_name: 'Write',
+        tool_input: { file_path: stateFile },
+        hook_event_name: 'PostToolUse',
+      }),
       encoding: 'utf8',
       timeout: 5000,
     });

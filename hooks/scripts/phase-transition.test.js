@@ -12,7 +12,7 @@ let tmpDir;
 
 function setup() {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-test-'));
-  fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+  fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
 }
 
 function cleanup() {
@@ -25,14 +25,14 @@ function cleanup() {
 function writeStateFile(sessionId, fields) {
   const yaml = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n');
   const content = `---\n${yaml}\n---\n`;
-  const filePath = path.join(tmpDir, '.claude', `deep-work.${sessionId}.md`);
+  const filePath = path.join(tmpDir, '.codex', `deep-work.${sessionId}.md`);
   fs.writeFileSync(filePath, content);
   return filePath;
 }
 
 function writePointerFile(sessionId) {
   fs.writeFileSync(
-    path.join(tmpDir, '.claude', 'deep-work-current-session'),
+    path.join(tmpDir, '.codex', 'deep-work-current-session'),
     sessionId
   );
 }
@@ -42,7 +42,8 @@ function runHook(toolInput) {
     const result = execFileSync('bash', [SCRIPT], {
       encoding: 'utf8',
       cwd: tmpDir,
-      env: {...process.env}, input: JSON.stringify({ tool_name: '', tool_input: JSON.stringify(toolInput), hook_event_name: 'PreToolUse' }),
+      env: { ...process.env },
+      input: JSON.stringify({ tool_name: 'Write', tool_input: toolInput, hook_event_name: 'PostToolUse' }),
       timeout: 10000,
     });
     return { exitCode: 0, stdout: result };

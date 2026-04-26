@@ -17,11 +17,19 @@ const { execFileSync, spawnSync } = require('child_process');
 
 const HOOKS = path.resolve(__dirname);
 
+function envelope(toolName, toolInput, event = 'PreToolUse') {
+  return JSON.stringify({
+    tool_name: toolName,
+    tool_input: toolInput,
+    hook_event_name: event,
+  });
+}
+
 describe('e2e: file_path with escaped quotes does not break hooks', () => {
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ip-e2e-'));
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
@@ -31,20 +39,15 @@ describe('e2e: file_path with escaped quotes does not break hooks', () => {
     // this test sets worktree disabled + phase=idle to isolate the parsing check:
     // if parsing works, no file_path-based block logic fires; if parsing is broken
     // (grep truncates at \"), the fallback behavior may differ.
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(statePath, '---\ncurrent_phase: idle\n---\n');
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sid);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
 
     const filePath = path.join(tmpDir, 'a "b" c.txt');
-    const env = {
-      ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
-      DEEP_WORK_SESSION_ID: sid,
-    };
     const result = spawnSync('bash', [path.join(HOOKS, 'phase-guard.sh')], {
-      input: JSON.stringify({ file_path: filePath }),
+      input: envelope('Write', { file_path: filePath }),
       cwd: tmpDir,
-      env,
+      env: { ...process.env, DEEP_WORK_SESSION_ID: sid },
       encoding: 'utf8',
       timeout: 5000,
     });
@@ -58,20 +61,15 @@ describe('e2e: file_path with escaped quotes does not break hooks', () => {
     const sid = 's-esc2';
     // Setup: current_phase=research (non-implement) + a file_path with quotes
     // should block AND produce a parseable JSON block message.
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(statePath, '---\ncurrent_phase: research\nwork_dir: .deep-work/test\n---\n');
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sid);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
 
     const filePath = path.join(tmpDir, 'src with "quotes".js');
-    const env = {
-      ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
-      DEEP_WORK_SESSION_ID: sid,
-    };
     const result = spawnSync('bash', [path.join(HOOKS, 'phase-guard.sh')], {
-      input: JSON.stringify({ file_path: filePath }),
+      input: envelope('Write', { file_path: filePath }),
       cwd: tmpDir,
-      env,
+      env: { ...process.env, DEEP_WORK_SESSION_ID: sid },
       encoding: 'utf8',
       timeout: 5000,
     });
@@ -87,23 +85,18 @@ describe('e2e: file_path with escaped quotes does not break hooks', () => {
 
   it('file-tracker.sh: escaped-quote path is recorded in receipt verbatim', () => {
     const sid = 's-esc3';
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
     fs.writeFileSync(
       statePath,
       '---\ncurrent_phase: implement\nwork_dir: .deep-work/wd\nactive_slice: SLICE-001\n---\n'
     );
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sid);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
 
     const filePath = path.join(tmpDir, 'edge "quoted".py');
-    const env = {
-      ...process.env,
-      CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
-      DEEP_WORK_SESSION_ID: sid,
-    };
     execFileSync('bash', [path.join(HOOKS, 'file-tracker.sh')], {
-      input: JSON.stringify({ file_path: filePath }),
+      input: envelope('Write', { file_path: filePath }, 'PostToolUse'),
       cwd: tmpDir,
-      env,
+      env: { ...process.env, DEEP_WORK_SESSION_ID: sid },
       encoding: 'utf8',
       timeout: 5000,
     });
@@ -118,12 +111,12 @@ describe('e2e: file_path with escaped quotes does not break hooks', () => {
   });
 
   it('phase-transition.sh: escaped-quote path in unrelated write does not crash', () => {
-    // phase-transition only acts on .claude/deep-work.{sid}.md writes; a
+    // phase-transition only acts on .codex/deep-work.{sid}.md writes; a
     // regular file with quotes in its name must be a quick no-op exit 0.
-    const env = { ...process.env, CLAUDE_TOOL_USE_INPUT: JSON.stringify({ file_path: '/tmp/x "q" y.txt' }) };
     const result = spawnSync('bash', [path.join(HOOKS, 'phase-transition.sh')], {
+      input: envelope('Write', { file_path: '/tmp/x "q" y.txt' }, 'PostToolUse'),
       cwd: tmpDir,
-      env,
+      env: { ...process.env },
       encoding: 'utf8',
       timeout: 5000,
     });
@@ -136,24 +129,24 @@ describe('e2e: phase-transition.sh handles fork worktree paths', () => {
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-fork-'));
-    // /deep-review 2026-04-26 C2: cache 는 .codex/, legacy state file 은 .claude/ (read_state_file fallback 검증).
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    // /deep-review 2026-04-26 C2: cache 는 .codex/, legacy state file 은 .codex/ (read_state_file fallback 검증).
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
     fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => { if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   it('fork path containing deep-work. twice: session_id is the innermost segment', () => {
     const childSid = 's-fork-child';
-    const nestedDir = path.join(tmpDir, '.deep-work', 'sessions', 'deep-work.s-parent', 'sub', '.claude');
+    const nestedDir = path.join(tmpDir, '.deep-work', 'sessions', 'deep-work.s-parent', 'sub', '.codex');
     fs.mkdirSync(nestedDir, { recursive: true });
     const statePath = path.join(nestedDir, `deep-work.${childSid}.md`);
     fs.writeFileSync(statePath, '---\ncurrent_phase: plan\n---\n');
-    fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), childSid);
+    fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), childSid);
 
-    const env = { ...process.env, CLAUDE_TOOL_USE_INPUT: JSON.stringify({ file_path: statePath }) };
     const result = spawnSync('bash', [path.join(HOOKS, 'phase-transition.sh')], {
+      input: envelope('Write', { file_path: statePath }, 'PostToolUse'),
       cwd: tmpDir,
-      env,
+      env: { ...process.env },
       encoding: 'utf8',
       timeout: 5000,
     });

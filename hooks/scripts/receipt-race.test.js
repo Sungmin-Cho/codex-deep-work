@@ -13,7 +13,11 @@ const SCRIPT = path.resolve(__dirname, 'file-tracker.sh');
 function runOnce(cwd, env, filePath) {
   return new Promise((resolve) => {
     const p = spawn('bash', [SCRIPT], { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
-    p.stdin.write(JSON.stringify({ file_path: filePath }));
+    p.stdin.write(JSON.stringify({
+      tool_name: 'Write',
+      tool_input: { file_path: filePath },
+      hook_event_name: 'PostToolUse',
+    }));
     p.stdin.end();
     let stderr = '';
     p.stderr.on('data', d => { stderr += d; });
@@ -28,7 +32,7 @@ describe('file-tracker.sh receipt race — no lost entries under concurrency', (
   let tmpDir;
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rr-'));
-    fs.mkdirSync(path.join(tmpDir, '.claude'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.codex'), { recursive: true });
   });
   afterEach(() => {
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -36,7 +40,7 @@ describe('file-tracker.sh receipt race — no lost entries under concurrency', (
 
   it(`${TRIALS} trials of ${PARALLEL}-way concurrent Write: all entries land`, async () => {
     const sid = 's-race';
-    const statePath = path.join(tmpDir, '.claude', `deep-work.${sid}.md`);
+    const statePath = path.join(tmpDir, '.codex', `deep-work.${sid}.md`);
 
     for (let trial = 0; trial < TRIALS; trial++) {
       // Fresh state each trial
@@ -45,7 +49,7 @@ describe('file-tracker.sh receipt race — no lost entries under concurrency', (
         statePath,
         `---\ncurrent_phase: implement\nwork_dir: ${workDir}\nactive_slice: SLICE-001\n---\n`
       );
-      fs.writeFileSync(path.join(tmpDir, '.claude', 'deep-work-current-session'), sid);
+      fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
       fs.mkdirSync(path.join(tmpDir, workDir), { recursive: true });
 
       const env = {

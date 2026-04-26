@@ -274,7 +274,7 @@ read_session_pointer() {
   # /deep-review 2026-04-26 C3: read_state_file 사용으로 legacy .claude/ fallback
   # 자동 처리 + per-file resolution. round 2 C3-broken fix: validate_legacy_schema
   # 가 simple ID 패턴 인식하므로 pointer file 도 정상 import.
-  read_state_file "deep-work-current-session" 2>/dev/null | tr -d '\n\r'
+  read_state_file "deep-work-current-session" 2>/dev/null | tr -d '\n\r' || true
   return 0
 }
 

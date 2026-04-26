@@ -624,7 +624,7 @@ fi
 
 # ─── P0: WORKTREE PATH ENFORCEMENT ─────────────────────────
 # Blocks Write/Edit/Bash to files outside the active worktree path.
-# Meta directories (.claude/, .deep-work/, .deep-review/, .deep-wiki/) are exempt.
+# Meta directories (.codex/, .deep-work/, .deep-review/, .deep-wiki/) are exempt.
 
 if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" && -n "$_OWN_FILE_NORM" ]]; then
   WORKTREE_PATH_NORM="$(normalize_path "$WORKTREE_PATH")"
@@ -633,7 +633,7 @@ if [[ "$WORKTREE_ENABLED" == "true" && -n "$WORKTREE_PATH" && -n "$_OWN_FILE_NOR
     # Meta directory exceptions — anchored to PROJECT_ROOT (C-3: prevents bypass via external .claude/ paths)
     _IS_META=false
     _PROJECT_ROOT_NORM="$(normalize_path "$PROJECT_ROOT")"
-    for _meta_pat in ".claude/" ".deep-work/" ".deep-review/" ".deep-wiki/"; do
+    for _meta_pat in ".codex/" ".deep-work/" ".deep-review/" ".deep-wiki/"; do
       if [[ "$_OWN_FILE_NORM" == "$_PROJECT_ROOT_NORM/$_meta_pat"* ]]; then
         _IS_META=true
         break
