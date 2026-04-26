@@ -2,6 +2,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   transformHooksJson,
   injectStdinParser,
@@ -9,6 +12,9 @@ import {
   generateUtilsSh,
   generateHooksTemplate,
   STDIN_PARSER_HEADER,
+  applyJsStatePathRefs,
+  UTILS_SOURCE_LINE,
+  processHookScript,
 } from './migrate-hooks.mjs';
 
 // Plan-Patch-33 (deep-review v6 4차 C4): bash -n syntax check helper.
@@ -263,5 +269,158 @@ describe('migrate-hooks generateHooksTemplate', () => {
     assert.ok(tmpl.description.includes('first-run'));
     // Plan-Patch-6: plugin cache 경로
     assert.match(JSON.stringify(tmpl), /\.codex\/plugins\/cache/);
+  });
+});
+
+// ─── Phase C 회귀 테스트 (7차 W5): Plan-Patch-38~41 ────────────────────────────
+
+describe('migrate-hooks Plan-Patch-38 (deep-review v6 6차 C1) — shell + JS marker dual-search', () => {
+  // (a) shell double-bracket: `[[ -d "$VAR/.claude" ]]` → dual-search via `||`
+  it('converts double-bracket .claude marker to dual-search (Codex first, .claude fallback)', () => {
+    const src = `[[ -d "$PROJECT_ROOT/.claude" ]] && echo found`;
+    const out = applyStatePathReplace(src);
+    assert.ok(out.includes('-d "$PROJECT_ROOT/.codex"'));
+    assert.ok(out.includes('-d "$PROJECT_ROOT/.claude"'));
+    assert.ok(out.includes('||'), 'should use || for double-bracket OR');
+    assertBashSyntaxOk(out, 'Plan-Patch-38 double-bracket');
+  });
+
+  it('converts double-bracket with trailing slash variant `[[ -d "$VAR/.claude/" ]]`', () => {
+    const src = `[[ -d "$ROOT/.claude/" ]]`;
+    const out = applyStatePathReplace(src);
+    assert.ok(out.includes('-d "$ROOT/.codex/"'));
+    assert.ok(out.includes('-d "$ROOT/.claude/"'));
+    assert.ok(out.includes('||'));
+    assertBashSyntaxOk(out, 'Plan-Patch-38 double-bracket trailing slash');
+  });
+
+  it('converts double-bracket with `${...}` parameter expansion form', () => {
+    const src = `[[ -d "\${PROJECT_ROOT}/.claude" ]]`;
+    const out = applyStatePathReplace(src);
+    assert.ok(out.includes('-d "${PROJECT_ROOT}/.codex"'));
+    assert.ok(out.includes('-d "${PROJECT_ROOT}/.claude"'));
+    assertBashSyntaxOk(out, 'Plan-Patch-38 ${var} form');
+  });
+
+  // (b) JS marker check: `fs.existsSync(path.join(arg, '.claude'))` → dual-search
+  it('converts JS marker check fs.existsSync(path.join(arg, ".claude")) to dual-search', () => {
+    const src = `if (fs.existsSync(path.join(root, '.claude'))) { /* legacy */ }`;
+    const out = applyJsStatePathRefs(src);
+    assert.ok(out.includes('fs.existsSync(path.join(root, ".codex"))'));
+    assert.ok(out.includes('fs.existsSync(path.join(root, ".claude"))'));
+    assert.ok(out.includes('||'));
+  });
+
+  it('preserves JS state-path component case (b1) — path.join(arg, ".claude", more)', () => {
+    const src = `path.join(root, '.claude', 'deep-work', 'foo.md')`;
+    const out = applyJsStatePathRefs(src);
+    assert.ok(out.includes(`path.join(root, '.codex', 'deep-work'`));
+  });
+});
+
+describe('migrate-hooks Plan-Patch-39 (deep-review v6 6차 C2) — UTILS_SOURCE_LINE / STDIN_PARSER inject 분리', () => {
+  // 분리: lib/utils.sh 자체만 self-source 회피, 그 외 모든 .sh (vendor utils.sh 포함) 는 inject.
+  // 이전 Plan-Patch-35 (5차 C3) 의 isSourcedLibrary 가 둘 다 묶어 skip 했던 버그 회귀 차단.
+  it('vendor utils.sh (non-lib path) gets UTILS_SOURCE_LINE injected when read_state_file is referenced', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-patch-39-'));
+    try {
+      // vendor utils.sh — basename is utils.sh but path does NOT include /lib/
+      const srcPath = path.join(tmpDir, 'vendor-utils.sh');
+      const dstPath = path.join(tmpDir, 'out-utils.sh');
+      // simulate vendor content that includes a state path → applyStatePathReplace 가 read_state_file 삽입
+      const vendor = `#!/usr/bin/env bash\ncat "$PROJECT_ROOT/.claude/deep-work.${'$'}{SESSION_ID}.md"\n`;
+      fs.writeFileSync(srcPath, vendor);
+      processHookScript(srcPath, dstPath, true);
+      const out = fs.readFileSync(dstPath, 'utf8');
+      assert.ok(out.includes('read_state_file'), 'state path was converted');
+      assert.ok(out.includes(UTILS_SOURCE_LINE), 'vendor utils.sh should source lib/utils.sh');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('lib/utils.sh does NOT get UTILS_SOURCE_LINE injected (self-source skip)', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-patch-39-'));
+    try {
+      const libDir = path.join(tmpDir, 'lib');
+      fs.mkdirSync(libDir);
+      const srcPath = path.join(libDir, 'utils.sh');
+      const dstPath = path.join(libDir, 'out-utils.sh');
+      // even with a write_state_file reference inside, lib/utils.sh must not source itself
+      const lib = `#!/usr/bin/env bash\n# write_state_file reference inside lib body\necho "stub"\n`;
+      fs.writeFileSync(srcPath, lib);
+      processHookScript(srcPath, dstPath, true);
+      const out = fs.readFileSync(dstPath, 'utf8');
+      assert.ok(!out.includes(UTILS_SOURCE_LINE), 'lib/utils.sh must not self-source');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('sourced library (basename utils.sh OR /lib/ in path) does NOT get stdin parser injected', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-patch-39-'));
+    try {
+      const libDir = path.join(tmpDir, 'lib');
+      fs.mkdirSync(libDir);
+      const srcPath = path.join(libDir, 'helper.sh');
+      const dstPath = path.join(libDir, 'out-helper.sh');
+      fs.writeFileSync(srcPath, `#!/usr/bin/env bash\necho hi\n`);
+      processHookScript(srcPath, dstPath, true);
+      const out = fs.readFileSync(dstPath, 'utf8');
+      assert.ok(!out.includes('codex-hook-stdin-parser'), 'sourced library must skip stdin parser inject');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('migrate-hooks Plan-Patch-40 (deep-review v6 7차 C1) — UTILS_SOURCE_LINE uses ${BASH_SOURCE[0]}, not $0', () => {
+  // `$0` 는 caller-relative — utils.sh 가 source 됐을 때 caller(또는 bash) 를 가리킴.
+  // `${BASH_SOURCE[0]}` 는 source 됐을 때 자기 자신의 파일 path 를 가리킴.
+  it('UTILS_SOURCE_LINE uses ${BASH_SOURCE[0]} for caller-independent resolution', () => {
+    assert.ok(UTILS_SOURCE_LINE.includes('${BASH_SOURCE[0]}'), 'must use BASH_SOURCE[0]');
+    assert.ok(!/dirname[ \t]+["']?\$0/.test(UTILS_SOURCE_LINE), 'must not use $0');
+  });
+
+  it('UTILS_SOURCE_LINE bash syntax is valid (no shell errors)', () => {
+    // 단독으로는 utils.sh 가 없으므로 source 실패 가능 — syntax 검증만
+    const wrapped = `#!/usr/bin/env bash\nset -e\n${UTILS_SOURCE_LINE} 2>/dev/null || true\n`;
+    assertBashSyntaxOk(wrapped, 'UTILS_SOURCE_LINE syntax');
+  });
+});
+
+describe('migrate-hooks Plan-Patch-41 (deep-review v6 7차 C2) — POSIX single-bracket marker uses -o, not ||', () => {
+  // single-bracket `[ -d X ]` 에서 `||` 사용 시 runtime syntax error.
+  // POSIX -o operator 로 별도 처리.
+  it('converts single-bracket `[ -d "$VAR/.claude" ]` to `[ -d ... -o -d ... ]`', () => {
+    const src = `[ -d "$PROJECT_ROOT/.claude" ] && echo found`;
+    const out = applyStatePathReplace(src);
+    assert.ok(out.includes('-d "$PROJECT_ROOT/.codex"'));
+    assert.ok(out.includes('-d "$PROJECT_ROOT/.claude"'));
+    assert.ok(out.includes('-o '), 'single-bracket must use -o operator (not ||)');
+    assert.ok(!/\[\s*-d[^[\]]*\|\|[^[\]]*\]/.test(out), 'must NOT use || inside single bracket');
+    assertBashSyntaxOk(out, 'Plan-Patch-41 single-bracket POSIX -o');
+  });
+
+  it('converts single-bracket with trailing slash `[ -d "$VAR/.claude/" ]`', () => {
+    const src = `[ -d "$ROOT/.claude/" ]`;
+    const out = applyStatePathReplace(src);
+    assert.ok(out.includes('-d "$ROOT/.codex/"'));
+    assert.ok(out.includes('-d "$ROOT/.claude/"'));
+    assert.ok(out.includes('-o '));
+    assertBashSyntaxOk(out, 'Plan-Patch-41 single-bracket trailing slash');
+  });
+
+  it('does not confuse single-bracket with double-bracket (different syntax)', () => {
+    const single = `[ -d "$ROOT/.claude" ]`;
+    const double = `[[ -d "$ROOT/.claude" ]]`;
+    const outSingle = applyStatePathReplace(single);
+    const outDouble = applyStatePathReplace(double);
+    assert.ok(outSingle.includes('-o '), 'single-bracket → -o');
+    assert.ok(!outSingle.includes('||'), 'single-bracket → no ||');
+    assert.ok(outDouble.includes('||'), 'double-bracket → ||');
+    assert.ok(!/\[ [^[\]]*\-o[^[\]]*\] \[\[/.test(outDouble), 'double-bracket → no -o');
+    assertBashSyntaxOk(outSingle, 'Plan-Patch-41 single');
+    assertBashSyntaxOk(outDouble, 'Plan-Patch-38 double');
   });
 });

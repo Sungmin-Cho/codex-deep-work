@@ -350,7 +350,7 @@ const TARGET_EXTS_HOOK_SCRIPTS = new Set(['.sh', '.js', '.mjs']);
 // utils.sh 가 library 로 source 됐을 때 $0 는 caller (parent script 또는 bash). 다양한 invocation
 // 컨텍스트에서 resolve fail. `${BASH_SOURCE[0]}` 는 source 됐을 때 자기 자신의 파일 path —
 // 모든 컨텍스트에서 정확.
-const UTILS_SOURCE_LINE = 'source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"';
+export const UTILS_SOURCE_LINE = 'source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"';
 
 // Plan-Patch-35 (deep-review v6 5차 C3): sourced library 검출.
 // vendor utils.sh 같은 library 가 source 됐을 때 STDIN_JSON=$(cat) 가 module-level 에 있으면
@@ -370,7 +370,7 @@ function isSourcedLibrary(srcFile) {
 // (b2) marker check (project-root 표식): `fs.existsSync(path.join(arg, '.claude'))` → dual-search
 //     — vendor sensor-trigger.js:14 의 marker 의도 보존. Codex 환경 (`.codex` 만 존재) 과
 //       legacy 환경 (`.claude` 만 존재) 둘 다 root 로 인식.
-function applyJsStatePathRefs(src) {
+export function applyJsStatePathRefs(src) {
   let out = src.replace(/\.claude\/(deep-work[/.\-])/g, '.codex/$1');
   // (b1) state-path component (path.join 중간 argument)
   out = out.replace(/path\.join\(([^()]+?),\s*(['"])\.claude\2,\s*/g, 'path.join($1, $2.codex$2, ');
@@ -381,7 +381,7 @@ function applyJsStatePathRefs(src) {
   return out;
 }
 
-function processHookScript(srcFile, dstFile, force) {
+export function processHookScript(srcFile, dstFile, force) {
   const content = fs.readFileSync(srcFile, 'utf8');
   if (!force && fs.existsSync(dstFile) && isMigrated(fs.readFileSync(dstFile, 'utf8'))) {
     return { skipped: true };
