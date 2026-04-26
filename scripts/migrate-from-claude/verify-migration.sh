@@ -34,10 +34,13 @@ else
 fi
 
 # Plan-Patch-12 (deep-review C9): glob → regex 변환 함수 inline node 호출.
+# Phase D 진입 검토 (2026-04-26): glob2regex 의 escape 버그 정정 — 이전 `\\\\.` 는
+# bash 문자열 `\\.` 가 되고, grep -E 에서 literal `\` + any char 로 해석 (literal `.` 아님).
+# 정확한 escape: JS source `\\.` → bash 문자열 `\.` → grep -E literal `.`.
 glob2regex_node='
 const allowed = JSON.parse(require("fs").readFileSync(process.argv[1])).allowed_paths;
 const toRegex = g => g
-  .replace(/\./g, "\\\\.")
+  .replace(/\./g, "\\.")
   .replace(/\*\*/g, "___DOUBLESTAR___")
   .replace(/\*/g, "[^/]*")
   .replace(/___DOUBLESTAR___/g, ".*");
