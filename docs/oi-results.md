@@ -246,12 +246,17 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
-## OI-2: update_plan 시그니처 (Medium) — **DEFERRED to Phase B**
+## OI-2: update_plan 시그니처 (Medium) — **RESOLVED (Phase C, 2026-04-26)**
 
 - 처리 정책: spec line 617 ("Medium / deep-implement skill 마이그레이션 시") 따름
 - Phase A 에서는 검증/측정 안 함
-- Phase B step 9 (`migrate-skills.mjs`) 가 deep-implement skill 변환 시점에 `update_plan` 시그니처 검증
-- 정확한 시그니처 미확인 시 fallback: TaskCreate/Update/List/Get → 자연어 "plan 갱신" 변환 (현재 spec Section 3-1 기본값)
+- Phase C 부록 F #5 검증 (2026-04-26):
+  - skills/deep-implement/SKILL.md 에서 `update_plan` 참조 1건 발견 (Branch A pseudo-code, line 341)
+  - 검증 결과: 잘못된 vocabulary — `subject`/`description` (TaskCreate 필드) 를 `update_plan` 에 사용
+  - 정정: Codex `update_plan({plan: [{step, status}]})` 시그니처에 맞게 step 단일 필드로 통합 + status enum (pending/in_progress/completed) 명시
+  - 추가 발견: Branch A 전체가 B-α 미지원 (TeamCreate/SendMessage/TeamDelete 모두 미지원) → deadwood 마커 추가
+  - skills/deep-research/SKILL.md:170 의 `update_plan` 참조는 historical (제거된 분기) — fix 불필요
+- 변경 commit: (Phase C resume 세션)
 
 ---
 
@@ -410,7 +415,7 @@ assumptions.json 의 receipt 검증 룰 강화 (Task 6 / Phase B step 17):
 
 | OI | 상태 | Phase B 영향 |
 |---|---|---|
-| OI-2 | ⏸ DEFERRED to Phase B step 9 | `update_plan` 시그니처 검증 시 |
+| OI-2 | ✅ RESOLVED (Phase C 부록 F #5, 2026-04-26) | deep-implement SKILL.md 의 `update_plan` 호출 정정 + Branch A B-α 미지원 마커 |
 | OI-4 | ✅ RESOLVED + 확장 (codex_hooks 추가) | plugin.json + AGENTS.md 갱신 (multi_agent + codex_hooks) |
 | OI-5 | ✅ RESOLVED — `codex plugin marketplace add` | spec Section 4-4/5-2/5-5 명령어 정정 |
 | OI-8 | ✅ RESOLVED — 메커니즘 부재, spec 현행 | assumptions.json 강화 (Phase B step 17) |

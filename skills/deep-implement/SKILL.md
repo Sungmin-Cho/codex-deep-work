@@ -336,10 +336,14 @@ ask the user with numbered options (1) ... 2) ... — 숫자로 응답). env var
 ```
 1. Cluster: file 소유권 기반 slice 그룹화 (겹침 → sequential, 독립 → parallel)
    — 이 logic은 Task 9 Section 2.1의 cluster 추출과 동일한 code path 재사용.
-2. Dispatch: TeamCreate "deep-implement"
+2. Dispatch: TeamCreate "deep-implement" (※ B-α 미지원 — TeamCreate/SendMessage/TeamDelete 모두 Codex 미지원이라 본 Branch A 전체가 deadwood. env_var 활성 + 사용자 선택 시에도 Codex 환경에서는 fall-through. 아래 pseudo-code 는 v6.4.0 CC 호환 reference.)
    - team_name: "deep-implement-v640"
-   - 각 cluster마다 update_plan 생성 (subject: "Implement cluster C{n}",
-     description: cluster의 slice_ids + files + TDD 규칙 + Slice Review 규칙)
+   - 각 cluster 에 대해 update_plan 호출하여 단일 step 추가:
+     - step: "Implement cluster C{n}: slice_ids=<...>, files=<...> (TDD + Slice Review 규칙 적용)"
+     - status: "pending" (dispatch 시점), 이후 worker 진행 따라 "in_progress" / "completed" 갱신
+     (※ OI-2 검증 — Codex `update_plan` 시그니처는 `{plan: [{step, status}]}` 형태.
+      CC 의 TaskCreate 가 가지던 subject + description 두 필드는 1:1 매핑 아님 —
+      step 한 줄로 통합 (위의 "Implement cluster ..." 형식). status 는 enum.)
    - 그룹별 Agent 스폰 — **full worker contract 필수** (CA3 fix):
        Agent(subagent_type="deep-work:implement-slice-worker",
              model=state.model_routing.implement,
