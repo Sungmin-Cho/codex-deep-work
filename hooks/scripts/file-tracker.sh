@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
-# TODO(Phase-C): pre-existing $(cat) at lines 25 — manual stdin migration required.
-# Auto-injection skipped to avoid stdin double-consumption (deep-review C3).
+# Phase-C 부록 F #6: pre-existing $(cat) at line ~28 was migrated to parse_hook_stdin
+# (see lib/utils.sh). Sets TOOL_INPUT (= inner .tool_input only, not envelope) +
+# TOOL_NAME + 5 backward-compat env aliases. extract_file_path_from_json downstream
+# now correctly parses inner tool_input.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/utils.sh"
 # state-path migrated by codex-migrate v0.1
 # file-tracker.sh — PostToolUse hook: implement 단계 파일 변경 자동 추적 + receipt 수집
@@ -25,8 +27,10 @@ STATE_FILE_NORM="$(normalize_path "$STATE_FILE")"
 # non-implement transitions (research→plan, plan→implement, test→idle)
 # never got a fresh cache entry — breaking the injector on most phase
 # changes. Move stdin read to the top and cache atomically.
-TOOL_INPUT="$(cat)"
-TOOL_NAME="${CLAUDE_TOOL_USE_TOOL_NAME:-${CLAUDE_TOOL_NAME:-}}"
+# Phase-C 부록 F #6: parse_hook_stdin reads stdin once + sets TOOL_INPUT (inner)
+# + TOOL_NAME + backward-compat aliases. Replaces vendor's `$(cat)` + env-var
+# fallback (Codex 환경에선 CLAUDE_TOOL_USE_TOOL_NAME env 미설정).
+parse_hook_stdin
 
 _HOOK_INPUT_CACHE="$PROJECT_ROOT/.codex/.hook-tool-input.${PPID}"
 mkdir -p "$(dirname "$_HOOK_INPUT_CACHE")" 2>/dev/null

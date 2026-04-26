@@ -32,20 +32,30 @@ describe('file-tracker.sh v6.2.4 post-review: cache happens BEFORE phase check',
       const statePath = writeState(sid, phase);
       const env = {
         ...process.env,
-        CLAUDE_TOOL_USE_TOOL_NAME: 'Write',
         DEEP_WORK_SESSION_ID: sid,
+        // 부록 F #6: env var fallback 제거 — parse_hook_stdin 가 envelope 파싱.
       };
-      const toolInput = JSON.stringify({ file_path: statePath });
+      // 부록 F #6: file-tracker.sh 가 parse_hook_stdin 으로 변경됨 → stdin 은 envelope 형식.
+      // cache 는 inner tool_input 만 저장 (envelope 전체 아님).
+      const innerToolInput = { file_path: statePath };
+      const envelope = JSON.stringify({
+        tool_name: 'Write',
+        tool_input: innerToolInput,
+        hook_event_name: 'PreToolUse',
+      });
       const result = spawnSync('bash', [SCRIPT], {
-        input: toolInput, cwd: tmpDir, env, encoding: 'utf8', timeout: 5000,
+        input: envelope, cwd: tmpDir, env, encoding: 'utf8', timeout: 5000,
       });
       assert.equal(result.status, 0, `hook failed: ${result.stderr}`);
 
-      // 7차 W4: file-tracker.sh 가 .codex/.hook-tool-input.${PPID} 에 쓴다 (이전 .claude/).
+      // 7차 W4: cache path .codex/.hook-tool-input.${PPID}.
       const cacheFile = path.join(tmpDir, '.codex', `.hook-tool-input.${process.pid}`);
       assert.ok(fs.existsSync(cacheFile),
         `cache file missing for phase=${phase}. dir contents: ${fs.readdirSync(path.join(tmpDir, '.codex'))}`);
-      assert.equal(fs.readFileSync(cacheFile, 'utf8'), toolInput);
+      // 부록 F #6: cache 는 inner tool_input (jq -c 출력) — JSON.stringify 와 호환되는지 비교.
+      const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      assert.deepEqual(cached, innerToolInput,
+        `cache content should match inner tool_input. got: ${JSON.stringify(cached)}`);
     });
   }
 });

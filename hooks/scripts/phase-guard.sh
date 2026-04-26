@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # migrated-by: codex-migrate v0.1
-# TODO(Phase-C): pre-existing $(cat) at lines 104,546 — manual stdin migration required.
-# Auto-injection skipped to avoid stdin double-consumption (deep-review C3).
+# Phase-C 부록 F #6: pre-existing $(cat) at lines ~104 (PHASE5 branch) and ~546
+# (normal flow) migrated to parse_hook_stdin (lib/utils.sh). Two branches are
+# mutually exclusive (PHASE5_MODE → branch 1 + exit, else → branch 2), so each
+# branch reads stdin once via parse_hook_stdin. _P5_INPUT/_P5_TOOL preserved as
+# branch-local vars sourced from parser-set TOOL_INPUT/TOOL_NAME.
 # state-path migrated by codex-migrate v0.1
 # phase-guard.sh — PreToolUse hook for deep-work v4.0 Evidence-Driven Protocol
 #
@@ -104,8 +107,11 @@ fi
 # Destructive 명령은 변형(/bin/rm, \rm, command rm 등)을 정규화 후 검사 (RC3-2).
 # Literal unresolved `$VAR` 또는 백틱 치환은 reject — SKILL은 expanded path를 사용 (RC3-3).
 if [[ -n "$PHASE5_MODE" ]]; then
-  _P5_INPUT="$(cat)"
-  _P5_TOOL="${CLAUDE_TOOL_USE_TOOL_NAME:-${CLAUDE_TOOL_NAME:-}}"
+  # Phase-C 부록 F #6: parse_hook_stdin sets TOOL_INPUT (inner) + TOOL_NAME.
+  # _P5_INPUT/_P5_TOOL preserve vendor's branch-local naming convention.
+  parse_hook_stdin
+  _P5_INPUT="$TOOL_INPUT"
+  _P5_TOOL="$TOOL_NAME"
 
   _PROJECT_ROOT_NORM="$(normalize_path "$PROJECT_ROOT")"
   # snapshot 우선 (RC3-1). snapshot 없으면 work_dir로 backward-compat.
@@ -545,11 +551,12 @@ if [[ -n "$PHASE5_MODE" ]]; then
 fi
 
 # ─── Read tool input from stdin ───────────────────────────────
+# Phase-C 부록 F #6: parse_hook_stdin reads stdin envelope once + sets TOOL_INPUT
+# (inner .tool_input only, not envelope) + TOOL_NAME + 5 backward-compat aliases.
+# Replaces vendor's `$(cat)` + `CLAUDE_TOOL_USE_TOOL_NAME` env-var fallback (Codex
+# 환경에선 env vars 미설정).
 
-TOOL_INPUT="$(cat)"
-
-# Detect tool name from environment (set by hooks system)
-TOOL_NAME="${CLAUDE_TOOL_USE_TOOL_NAME:-${CLAUDE_TOOL_NAME:-}}"
+parse_hook_stdin
 
 # ─── File path extraction (all phases, for worktree guard + ownership) ──
 # NOTE: 파일 경로 추출은 CURRENT_SESSION_ID와 무관하게 실행해야 한다 (F-02).

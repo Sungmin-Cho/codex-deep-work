@@ -246,6 +246,44 @@ $ find ~/.codex -name "marketplace.json" -type f
 
 ---
 
+## Plan-Patch-7 Phase-C TODO (부록 F #6) — **RESOLVED (Phase C, 2026-04-26)**
+
+- migrate-hooks.mjs `injectStdinParser` 가 vendor 의 pre-existing `$(cat)` 가
+  있는 hook 스크립트에는 stdin double-consumption 회피 위해 자동 inject skip
+  → `# TODO(Phase-C)` 마커 잔존.
+
+- 검증 후 Codex 환경 부정합 발견:
+  - vendor `TOOL_INPUT="$(cat)"` 가 stdin envelope 통째로 읽음
+    (Codex 도 envelope 형식: `{tool_name, tool_input, hook_event_name, ...}`)
+  - 그러나 vendor 의 downstream `extract_file_path_from_json "$TOOL_INPUT"` 은
+    inner `{file_path: ...}` 만 기대 → empty 반환 (broken in Codex)
+  - vendor `TOOL_NAME="${CLAUDE_TOOL_USE_TOOL_NAME:-...}"` env-var fallback 도
+    Codex 환경에선 미설정 → empty
+  - phase-transition.sh 의 cache read 도 envelope 받아서 file_path 추출 실패
+
+- 정정 (3 사이트 통합):
+  - `hooks/scripts/file-tracker.sh:28-29` (1 사이트): `$(cat) + env-var` → `parse_hook_stdin`
+  - `hooks/scripts/phase-guard.sh:104-105` (PHASE5 분기): 동일 — 단 `_P5_INPUT`/`_P5_TOOL` 변수명 보존 (parser-set TOOL_INPUT/TOOL_NAME 으로부터 할당)
+  - `hooks/scripts/phase-guard.sh:545-546` (정상 분기): 동일
+  - 두 분기 mutually exclusive (PHASE5_MODE → branch 1 + exit, else → branch 2) 라 stdin 한번씩 읽힘
+  - `parse_hook_stdin` 함수가 envelope JSON 파싱 + TOOL_NAME/TOOL_INPUT/HOOK_EVENT/SESSION_ID/TURN_ID/MODEL 설정 + 5 backward-compat env aliases export
+
+- 부수 발견:
+  - file-tracker.sh 의 cache 가 이제 envelope 대신 inner tool_input 만 저장 →
+    phase-transition.sh 의 cache-read 시 extract_file_path_from_json 정상 동작
+    (이전엔 envelope 읽어 fail 하는 pre-existing bug)
+  - file-tracker-fixes.test.js 의 4 stdin cache 테스트가 vendor 식 non-envelope
+    fixture 사용 → envelope format 으로 갱신 (production 일치)
+
+- 잔존 TODO(Phase-C) 마커 2건:
+  - `hooks/scripts/input-parsing-e2e.test.js:2` (Plan-Patch-22 multi-level nesting fixture, 부록 F #9 영역)
+  - `hooks/scripts/phase-guard-hardening.test.js:2` (동일)
+
+- 검증: verify-migration.sh ALL CHECKS PASS, 1312 tests / 1176 pass / 136 fail
+  베이스라인 유지 (신규 회귀 0).
+
+---
+
 ## SendMessage 패턴 1 vs 2 분류 (부록 F #1) — **RESOLVED (Phase C, 2026-04-26)**
 
 - spec Section 3-6 line 478-479 의 두 패턴 분리 정의:
