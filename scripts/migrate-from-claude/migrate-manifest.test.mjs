@@ -44,6 +44,22 @@ describe('migrate-manifest', () => {
     assert.ok(out.keywords.includes('deep-work'));
   });
 
+  // 5차 W7: discoverability — description 의 "Evidence-Driven Development Protocol" / "TDD enforcement"
+  // 와 일관되게 keywords 에 evidence-driven, tdd 추가 (npm search hit 율).
+  it('adds evidence-driven and tdd keywords (5차 W7)', () => {
+    const cc = { name: 'x', version: '1', files: [], keywords: [] };
+    const out = applyManifestTransform(cc);
+    assert.ok(out.keywords.includes('evidence-driven'));
+    assert.ok(out.keywords.includes('tdd'));
+  });
+
+  // 5차 W7: LICENSE 가 npm tarball 에 자동 포함되긴 하지만 files 배열에도 명시 (explicit > implicit).
+  it('adds LICENSE to files array (5차 W7)', () => {
+    const cc = { name: 'x', version: '1', files: ['README.md'], keywords: [] };
+    const out = applyManifestTransform(cc);
+    assert.ok(out.files.includes('LICENSE'));
+  });
+
   it('renames package name from @claude-deep-work/deep-work to codex-deep-work', () => {
     const cc = { name: '@claude-deep-work/deep-work', version: '6.4.0', files: [], keywords: [] };
     const out = applyManifestTransform(cc);

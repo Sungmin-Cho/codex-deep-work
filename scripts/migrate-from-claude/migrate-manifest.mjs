@@ -10,10 +10,12 @@ const RENAMES = {
   'CLAUDE.md': 'AGENTS.md',
 };
 
-const FILES_ADD = ['README.ko.md', 'CHANGELOG.md', 'CHANGELOG.ko.md', 'AGENTS.md'];
+const FILES_ADD = ['README.ko.md', 'CHANGELOG.md', 'CHANGELOG.ko.md', 'AGENTS.md', 'LICENSE'];
 
 const KEYWORDS_REMOVE = ['claude-code', 'claude-code-plugin', 'agent-team'];
-const KEYWORDS_ADD = ['codex'];
+// 5차 W7: discoverability — description 의 "Evidence-Driven Development Protocol" / "TDD enforcement" 와
+// 일관되게 keywords 에도 노출 (npm search hit 율).
+const KEYWORDS_ADD = ['codex', 'evidence-driven', 'tdd'];
 
 const NAME_REMAP = {
   '@claude-deep-work/deep-work': 'codex-deep-work',

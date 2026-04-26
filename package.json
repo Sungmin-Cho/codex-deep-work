@@ -11,7 +11,9 @@
   "keywords": [
     "deep-work",
     "workflow",
-    "codex"
+    "codex",
+    "evidence-driven",
+    "tdd"
   ],
   "files": [
     ".codex-plugin/",
@@ -28,7 +30,8 @@
     "README.ko.md",
     "CHANGELOG.md",
     "CHANGELOG.ko.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "LICENSE"
   ],
   "scripts": {
     "test": "node --test"
