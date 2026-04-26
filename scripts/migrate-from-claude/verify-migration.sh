@@ -69,9 +69,9 @@ else
 fi
 
 echo "=== verify-migration: 3. B-α call-form leftover (W-R1 + C9 + Plan-Patch-28) ==="
-ALLOW_BA=$(node -e "$glob2regex_node" "$ALLOWLIST_DIR/allowlist-bα-tokens.json" 2>/dev/null) || ALLOW_BA=""
+ALLOW_BA=$(node -e "$glob2regex_node" "$ALLOWLIST_DIR/allowlist-b-alpha-tokens.json" 2>/dev/null) || ALLOW_BA=""
 if [ -z "$ALLOW_BA" ]; then
-  echo "FAIL: allowlist-bα-tokens.json regex generation failed (empty result)"
+  echo "FAIL: allowlist-b-alpha-tokens.json regex generation failed (empty result)"
   EXIT=1
 else
   CALL_FORM=$(grep -rEn 'TaskCreate\(|TaskUpdate\(|TaskList\(|TaskGet\(|TodoWrite\(|TeamCreate\(|TeamDelete\(|TeamGet\(|SendMessage\(|Skill\(["'"'"']|AskUserQuestion\(' \
