@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Write, Bash, Grep, Glob
+codex-capabilities: workspace-read/search, apply_patch, exec_command
 description: "Receipt management — view, dashboard, export receipts"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ View, export, and manage evidence receipts from the implementation phase.
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. Output ALL user-facing messages in the detected language.
+Detect the user's language from their messages. Output ALL user-facing messages in the detected language.
 
 ## Usage
 

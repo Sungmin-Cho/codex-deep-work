@@ -3,13 +3,21 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { transformCommandFile, splitFrontmatter } from './migrate-commands.mjs';
 
-describe('migrate-commands frontmatter preservation', () => {
-  it('preserves YAML frontmatter unchanged', () => {
-    const src = `---\nname: deep-work\ndescription: foo\n---\n\nUse the Task tool.`;
+describe('migrate-commands frontmatter migration', () => {
+  it('preserves YAML metadata while converting Claude tool frontmatter to Codex capabilities', () => {
+    const src = `---\nname: deep-work\nallowed-tools: Skill, Read, Write, Bash, Agent, AskUserQuestion, update_plan\ndescription: foo\n---\n\nUse the Task tool.`;
     const out = transformCommandFile(src);
     const { frontmatter } = splitFrontmatter(out);
     assert.match(frontmatter, /name:\s*deep-work/);
     assert.match(frontmatter, /description:\s*foo/);
+    assert.doesNotMatch(frontmatter, /allowed-tools/);
+    assert.match(frontmatter, /codex-capabilities:/);
+    assert.match(frontmatter, /skill invocation/);
+    assert.match(frontmatter, /workspace-read\/search/);
+    assert.match(frontmatter, /apply_patch/);
+    assert.match(frontmatter, /exec_command/);
+    assert.match(frontmatter, /spawn_agent/);
+    assert.match(frontmatter, /numbered-choice prompt/);
   });
 
   it('handles missing frontmatter gracefully', () => {

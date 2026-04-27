@@ -38,7 +38,7 @@ State load 직후, Step 3 dispatch 전에 migration helper 를 호출하여 `mod
 실행:
 ```bash
 if [ -f "$STATE_FILE" ]; then
-  result=$(node "${CLAUDE_PLUGIN_ROOT}/scripts/migrate-model-routing.js" "$STATE_FILE" 2>&1 || true)
+  result=$(node "${DEEP_WORK_PLUGIN_ROOT}/scripts/migrate-model-routing.js" "$STATE_FILE" 2>&1 || true)
 fi
 ```
 
@@ -61,7 +61,7 @@ const { replaced, warnings } = migrateStateFile(stateFile);
 
 SessionStart hook의 update-check.sh 출력 처리:
 - `JUST_UPGRADED` → 업그레이드 완료 메시지, 계속 진행
-- `UPGRADE_AVAILABLE` → 프로필 `auto_update` 확인 → 자동 또는 AskUserQuestion으로 업그레이드 제안
+- `UPGRADE_AVAILABLE` → 프로필 `auto_update` 확인 → 자동 또는 번호형 사용자 확인으로 업그레이드 제안
 
 ## 1-2. 기존 세션 확인 (Multi-Session)
 
@@ -69,7 +69,7 @@ SessionStart hook의 update-check.sh 출력 처리:
 `.codex/deep-work.local.md` 존재 + active → `migrate_legacy_state` 실행
 
 ### Stale 세션 감지
-`detect_stale_sessions` → 각 stale 세션에 대해 AskUserQuestion:
+`detect_stale_sessions` → 각 stale 세션에 대해 번호형 사용자 확인:
 1. 이어서 진행 → state 읽기 + worktree 확인 + artifact 복원 → **Step 3으로 jump**
 2. 종료 처리 → idle 설정, registry 해제
 3. 무시 → 계속
@@ -102,13 +102,13 @@ write_session_pointer "$SESSION_ID"
 | `--profile=X` | 프리셋 X 직접 선택 |
 | `--resume-from=<phase>` | Step 1 초기화 건너뛰고 기존 state로 `<phase>`(research/plan/implement/test) 해당 Step 3-N부터 재개. `deep-resume.md`가 사용. |
 
-플래그 제거 후 나머지 = task description. 비어있으면 AskUserQuestion.
+플래그 제거 후 나머지 = task description. 비어있으면 numbered-choice prompt.
 
 ### 프로필 로드
 
 `.codex/deep-work-profile.yaml` 존재 시:
 1. version 확인 (v1 → v2 자동 마이그레이션)
-2. 프리셋 선택: `--profile=X` / 단일 프리셋 → 자동선택 / 복수 → AskUserQuestion
+2. 프리셋 선택: `--profile=X` / 단일 프리셋 → 자동선택 / 복수 → numbered-choice prompt
 3. 프리셋 필드 → 내부 변수 매핑 (team_mode, project_type, start_phase, tdd_mode, model_routing, notifications, cross_model_preference)
 4. 플래그 override 적용 (--team, --zero-base 등이 프리셋보다 우선)
 5. 적용된 설정 표시 + "이대로 진행 / 이번 세션만 변경" 선택
@@ -122,7 +122,7 @@ write_session_pointer "$SESSION_ID"
 
 프로필 로드 성공 시 이 단계 전부 건너뜀.
 
-1. **작업 모드**: Solo / Team → Team 선택 시 Agent Teams 환경변수 확인
+1. **작업 모드**: Solo / Team → Team 선택 시 Codex `multi_agent` feature 확인
 2. **모델 라우팅**: 기본값(R=sonnet, P=main, I=sonnet, T=haiku) / 커스텀
 3. **알림**: 없음 / 로컬 / 외부 채널 (Slack/Discord/Telegram/Webhook)
 4. **프로젝트 타입**: 기존 코드베이스 / 제로베이스
@@ -141,7 +141,7 @@ Legacy `deep-work/` → `.deep-work/` 마이그레이션 자동 처리.
 
 ## 1-6. Cross-model 도구 감지
 
-codex/gemini 설치 여부 확인 → 프로필의 `cross_model_preference`에 따라 자동 활성화 / AskUserQuestion.
+codex/gemini 설치 여부 확인 → 프로필의 `cross_model_preference`에 따라 자동 활성화 / numbered-choice prompt.
 
 ## 1-7. Assumption Health Check
 
@@ -218,14 +218,11 @@ Brainstorm skill의 Section 3 완료 메시지 출력 후:
 
 ### Exit Gate (Phase 0 → Phase 1)
 
-AskUserQuestion:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 0 (Brainstorm) 완료. 어떻게 진행할까요?"
-- multiSelect: false
-- options:
-  1. label: "다음 phase로 진행", description: "즉시 Phase 1 Research를 시작합니다"
-  2. label: "이 phase 재실행/수정", description: "Brainstorm을 재실행하거나 brainstorm.md를 편집합니다"
-  3. label: "일시정지", description: "세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다"
+1. "다음 phase로 진행" — 즉시 Phase 1 Research를 시작합니다
+2. "이 phase 재실행/수정" — Brainstorm을 재실행하거나 brainstorm.md를 편집합니다
+3. "일시정지" — 세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다
 
 분기:
 - option 1 → **즉시 `current_phase: research` 설정** (F1 Option A) → **§3-2 Research로 dispatch** (§3-2 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill을 직접 호출하지 않는다 — §3-2 본문과 중복 실행 방지 (v6.3.1 NO1 fix).
@@ -239,7 +236,7 @@ AskUserQuestion:
 **Resume 분기 (v6.3.1 F1 + NW5 integrity check)**: state의 `research_approved: true`가 이미 있고 `$ARGUMENTS`에 `--force-rerun`이 없으면 paused-after-approval 복귀 후보 경로이다. 단, **approval integrity check**가 추가로 필요:
 
 1. `research_approved_hash` (state) 와 현재 `$WORK_DIR/research.md`의 sha256을 비교:
-   - `Bash({ command: "shasum -a 256 \"$WORK_DIR/research.md\" | awk '{print $1}'" })` (or `sha256sum` on Linux)
+   - run `shasum -a 256 "$WORK_DIR/research.md" | awk '{print $1}'` (or `sha256sum` on Linux)
    - 해시 일치 → approval은 유효. Skill 호출과 review+approval을 **건너뛰고** 바로 아래 Exit Gate 실행.
    - 해시 불일치 → **out-of-band 편집 감지 → data preservation + in-place review** (v6.3.1 NO3 fix + NP3 collision fix):
      1. 현재 `$WORK_DIR/research.md`를 `$WORK_DIR/research.v{iteration_count+1}-edit.md`로 복사 (편집 내용 백업). **`-edit` 접미사** 사용 — deep-research skill의 기존 `research.v{iteration_count}.md` backup과 파일명 충돌 방지 (NP3).
@@ -265,27 +262,25 @@ the deep-research skill
 Phase Skill 완료 후:
 1. 산출물 Read → Auto Review (subagent + codex)
 2. Main 에이전트가 findings 판단 → 동의/비동의 분류
-3. 1차 승인: 수정 항목을 사용자에게 제시 (AskUserQuestion — 문서 수정 대상)
+3. 1차 승인: 수정 항목을 사용자에게 제시 (numbered-choice prompt — 문서 수정 대상)
 4. 승인된 항목 반영
-5. 2차 승인: 최종 문서 확인 (AskUserQuestion — 문서 최종 승인)
-→ 상세: Read("../shared/references/review-approval-workflow.md")
+5. 2차 승인: 최종 문서 확인 (numbered-choice prompt — 문서 최종 승인)
+→ 상세: read `../shared/references/review-approval-workflow.md`
 
 문서 최종 승인 후 → State 부분 업데이트:
 - `research_approved: true` (Resume fast-path baseline — v6.3.1 NC1 fix)
 - `research_approved_at`: current ISO timestamp
-- `research_approved_hash`: `Bash({ command: "shasum -a 256 \"$WORK_DIR/research.md\" | awk '{print $1}'" })` 결과 (v6.3.1 NW5 integrity snapshot)
+- `research_approved_hash`: `shasum -a 256 "$WORK_DIR/research.md" | awk '{print $1}'` 결과 (v6.3.1 NW5 integrity snapshot)
 
 → 아래 Exit Gate 실행.
 
 ### Exit Gate (Phase 1 → Phase 2)
 
-AskUserQuestion:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 1 (Research) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
-  2. "이 phase 재실행/수정"
-  3. "일시정지"
+1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
+2. "이 phase 재실행/수정"
+3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: plan` 설정** → **§3-3 Plan으로 dispatch** (§3-3 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -299,7 +294,7 @@ AskUserQuestion:
 **Resume 분기 (v6.3.1 F1 + NW5 integrity check)**: state의 `plan_approved: true`가 이미 있고 `$ARGUMENTS`에 `--force-rerun`이 없으면 paused-after-approval 복귀 후보 경로이다. 단, **approval integrity check**가 추가로 필요:
 
 1. `plan_approved_hash` (state) 와 현재 `$WORK_DIR/plan.md`의 sha256을 비교:
-   - `Bash({ command: "shasum -a 256 \"$WORK_DIR/plan.md\" | awk '{print $1}'" })` (or `sha256sum`)
+   - run `shasum -a 256 "$WORK_DIR/plan.md" | awk '{print $1}'` (or `sha256sum`)
    - 해시 일치 → approval 유효. Skill 호출과 review+approval을 **건너뛰고** 바로 아래 Exit Gate 실행.
    - 해시 불일치 → **out-of-band 편집 감지 → data preservation + in-place review** (v6.3.1 NO3 fix + NP3 collision fix):
      1. 현재 `$WORK_DIR/plan.md`를 `$WORK_DIR/plan.v{iteration_count+1}-edit.md`로 복사. **`-edit` 접미사** 사용 — deep-plan skill의 기존 `plan.v{iteration_count}.md` backup(Pre-steps Backup 단계)과 파일명 충돌 방지 (NP3).
@@ -319,23 +314,21 @@ AskUserQuestion:
 the deep-plan skill
 
 완료 후: **Review + Approval Workflow 실행** (Research와 동일 패턴 — 문서 수정 승인).
-→ 상세: Read("../shared/references/review-approval-workflow.md")
+→ 상세: read `../shared/references/review-approval-workflow.md`
 
 문서 최종 승인 후 → State 부분 업데이트:
 - `plan_approved: true`
 - `plan_approved_at`: current ISO timestamp (drift baseline)
-- `plan_approved_hash`: `Bash({ command: "shasum -a 256 \"$WORK_DIR/plan.md\" | awk '{print $1}'" })` 결과 (v6.3.1 NW5 integrity snapshot)
+- `plan_approved_hash`: `shasum -a 256 "$WORK_DIR/plan.md" | awk '{print $1}'` 결과 (v6.3.1 NW5 integrity snapshot)
 - **`current_phase`는 이 시점에서는 변경하지 않는다.** Exit Gate "진행" 시에 `implement`로 전환.
 
 ### Exit Gate (Phase 2 → Phase 3)
 
-AskUserQuestion:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 2 (Plan) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행"
-  2. "이 phase 재실행/수정"
-  3. "일시정지"
+1. "다음 phase로 진행"
+2. "이 phase 재실행/수정"
+3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: implement` 설정** → **§3-4 Implement로 dispatch** (§3-4 body가 Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -352,12 +345,10 @@ Implement skill의 Section 3 완료 후:
 
 ### Exit Gate (Phase 3 → Phase 4)
 
-AskUserQuestion:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 3 (Implement) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행"
-  2. "이 phase 재실행/수정"
+1. "다음 phase로 진행"
+2. "이 phase 재실행/수정"
   3. "일시정지"
 
 분기:
@@ -383,13 +374,11 @@ the deep-test skill
 
 `$ARGUMENTS`에 `--skip-integrate` 포함 시 Exit Gate 생략하고 바로 §3-6 Finish 진입.
 
-AskUserQuestion:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 4 (Test) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행" — Phase 5 Integrate
-  2. "Integrate 건너뛰고 Finish"
-  3. "Test 재실행"
+1. "다음 phase로 진행" — Phase 5 Integrate
+2. "Integrate 건너뛰고 Finish"
+3. "Test 재실행"
   4. "일시정지"
 
 분기:

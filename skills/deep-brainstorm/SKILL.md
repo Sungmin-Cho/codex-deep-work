@@ -9,7 +9,7 @@ description: "Phase 0 — Brainstorm: explore why before how (skip-able)"
 >
 > 이 SKILL.md 본문을 사용자에게 echo하거나 요약하여 출력하지 마라.
 >
-> - Section 1 (state 로드, 완료-marker 감지)의 **조용한 내부 처리**는 silent 실행한다. Pre-checks/상태 분기의 명시적 AskUserQuestion은 허용된 예외.
+> - Section 1 (state 로드, 완료-marker 감지)의 **조용한 내부 처리**는 silent 실행한다. Pre-checks/상태 분기의 명시적 numbered-choice prompt은 허용된 예외.
 > - 첫 사용자-가시 주 동작은 Section 2의 **First Action: Core 질문 #1**이다.
 > - Section 3 완료 메시지는 Section 2의 주 단계(질문, 접근법 비교, brainstorm.md 작성, Review Gate)를 **실제로 수행**한 뒤에만 출력한다.
 > - 본 문서의 code block / 안내 템플릿은 Write tool 자료 또는 작동 지침이지 사용자 화면 출력용이 아니다.
@@ -45,7 +45,7 @@ $ARGUMENTS에 위 플래그 포함 시:
 
 ## First Action (즉시 실행 — 건너뛰기 금지)
 
-Section 1 state 로드가 완료되면 **즉시** 다음 메시지를 사용자에게 출력하고 응답을 기다린다 (AskUserQuestion이 아닌 conversational 메시지):
+Section 1 state 로드가 완료되면 **즉시** 다음 메시지를 사용자에게 출력하고 응답을 기다린다 (numbered-choice prompt이 아닌 conversational 메시지):
 
 > "Brainstorm 단계를 시작합니다. 이 기능/변경의 핵심 목표는 무엇인가요? (한 문장으로)"
 
@@ -108,7 +108,7 @@ APPROACH A: [Name]
 
 ## Step 3: Review Gate
 
-Read("../shared/references/review-gate.md") — Structural Review 실행:
+read `../shared/references/review-gate.md` — Structural Review 실행:
 - Phase: brainstorm
 - Document: `$WORK_DIR/brainstorm.md`
 - Dimensions: problem_clarity, approach_differentiation, success_measurability, edge_case_coverage
@@ -119,7 +119,7 @@ Read("../shared/references/review-gate.md") — Structural Review 실행:
 
 ## Step 4: Phase Review Gate
 
-Read("../shared/references/phase-review-gate.md") — 프로토콜 실행:
+read `../shared/references/phase-review-gate.md` — 프로토콜 실행:
 - Phase: brainstorm
 - Document: `$WORK_DIR/brainstorm.md`
 - Self-review checklist: 문제 정의 명확성, 접근법 비교 충실도, 성공 기준 존재

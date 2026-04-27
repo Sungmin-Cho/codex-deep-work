@@ -17,11 +17,32 @@ export function splitFrontmatter(src) {
   return { frontmatter: m[1], body: m[2] };
 }
 
+function mapCommandCapability(tool) {
+  if (['Read', 'Grep', 'Glob'].includes(tool)) return 'workspace-read/search';
+  if (['Write', 'Edit', 'MultiEdit'].includes(tool)) return 'apply_patch';
+  if (tool === 'Bash') return 'exec_command';
+  if (tool === 'Agent') return 'spawn_agent';
+  if (tool === 'Skill') return 'skill invocation';
+  if (tool === 'AskUserQuestion') return 'numbered-choice prompt';
+  return tool;
+}
+
+export function transformCommandFrontmatter(frontmatter) {
+  return frontmatter.replace(/^allowed-tools:\s*(.+)$/m, (_m, raw) => {
+    const mapped = [];
+    for (const tool of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+      const capability = mapCommandCapability(tool);
+      if (!mapped.includes(capability)) mapped.push(capability);
+    }
+    return `codex-capabilities: ${mapped.join(', ')}`;
+  });
+}
+
 export function transformCommandFile(src) {
   const { frontmatter, body } = splitFrontmatter(src);
   // skills 와 동일 tool/path 매핑. command 는 first-run install 대상 아님.
   const transformed = transformSkillBody(body, '__command__');
-  return frontmatter + transformed;
+  return transformCommandFrontmatter(frontmatter) + transformed;
 }
 
 function processCommandFile(srcFile, dstFile, force) {

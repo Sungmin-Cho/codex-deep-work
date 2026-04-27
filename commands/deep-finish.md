@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
+codex-capabilities: workspace-read/search, apply_patch, exec_command, numbered-choice prompt
 description: "Finish a deep work session — merge, PR, keep, or discard the branch"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ Finish the current Deep Work session with an explicit branch completion workflow
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Instructions
 
@@ -59,7 +59,7 @@ WORK_DIR="${PROJECT_ROOT}/$(read_frontmatter_field "$STATE_FILE" work_dir)"
 - 존재 & `terminated_by != null` → 정상 진행 (Section 2로).
 - 존재 & `terminated_by == null`:
   - **v6.3.0 review Codex P2**: `$ARGUMENTS`에 `--skip-integrate` 있음 → prompt 없이 Section 1c로 진행 (orchestrator auto-flow가 질문에 막히지 않도록).
-  - `--skip-integrate` 없음 → **Phase 5 루프가 중단된 상태** (Ctrl-C 또는 재진입 대기). AskUserQuestion:
+  - `--skip-integrate` 없음 → **Phase 5 루프가 중단된 상태** (Ctrl-C 또는 재진입 대기). 번호형 사용자 확인:
 
     ```
     ⚠️ Phase 5 Integrate 루프가 중단된 상태입니다.
@@ -69,7 +69,7 @@ WORK_DIR="${PROJECT_ROOT}/$(read_frontmatter_field "$STATE_FILE" work_dir)"
     - (1) 선택 → "exit 후 /deep-integrate 실행하세요" + exit 0.
     - (2) 선택 → 기존 절차 계속.
 
-- 부재 & `$ARGUMENTS`에 `--skip-integrate` 없음 → AskUserQuestion:
+- 부재 & `$ARGUMENTS`에 `--skip-integrate` 없음 → 번호형 사용자 확인:
 
   ```
   ℹ️ Phase 5 Integrate를 아직 실행하지 않았습니다.
@@ -93,7 +93,7 @@ WORK_DIR="${PROJECT_ROOT}/$(read_frontmatter_field "$STATE_FILE" work_dir)"
 bash skills/deep-integrate/phase5-record-error.sh <ABSOLUTE_WORK_DIR>
 ```
 
-**중요 (v6.3.0 review W5-1)**: Claude Code의 Bash tool은 매 호출마다 새 shell을 spawn하므로 이전 단계에서 export한 `$WORK_DIR` 같은 변수가 persist하지 않는다. LLM은 state file에서 `work_dir`을 먼저 읽어 `<ABSOLUTE_WORK_DIR>` 자리에 실제 절대경로를 치환 후 호출한다. literal `"$WORK_DIR"`를 그대로 전달하면 empty string으로 확장되어 helper가 usage 에러로 fail한다.
+**중요 (v6.3.0 review W5-1)**: Codex `exec_command` 호출은 매 호출마다 새 shell을 spawn할 수 있으므로 이전 단계에서 export한 `$WORK_DIR` 같은 변수가 persist하지 않는다. LLM은 state file에서 `work_dir`을 먼저 읽어 `<ABSOLUTE_WORK_DIR>` 자리에 실제 절대경로를 치환 후 호출한다. literal `"$WORK_DIR"`를 그대로 전달하면 empty string으로 확장되어 helper가 usage 에러로 fail한다.
 
 또한 helper는 state file의 `phase5_work_dir_snapshot`을 읽어 인자와 일치하는지 검증하므로(RC5-3), 올바른 세션 work_dir이어야 실행된다.
 
@@ -289,7 +289,7 @@ If `gh` is not available, the PR option will be marked as unavailable.
 
 ### 6. Present completion options
 
-Use AskUserQuestion:
+Ask the user with numbered options:
 
 **If `worktree_enabled` is `true`:**
 
@@ -388,7 +388,7 @@ Use AskUserQuestion:
 
 #### Option: Discard
 
-1. Confirm with AskUserQuestion:
+1. Confirm with numbered options:
    ```
    ⚠️ 정말 삭제하시겠습니까?
       브랜치: [worktree_branch]

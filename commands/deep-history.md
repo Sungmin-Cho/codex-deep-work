@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Bash, Glob
+codex-capabilities: workspace-read/search, exec_command
 description: "View deep work session history — cross-session trends, model usage, TDD compliance"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ View historical session data across all completed Deep Work sessions.
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. Output ALL user-facing messages in the detected language.
+Detect the user's language from their messages. Output ALL user-facing messages in the detected language.
 
 ## Instructions
 

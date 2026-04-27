@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion
+codex-capabilities: workspace-read/search, apply_patch, exec_command, spawn_agent, numbered-choice prompt
 description: "Manually trigger structural review and/or cross-model adversarial review on current phase document"
 argument-hint: "[--structural] [--adversarial] [--phase=brainstorm|research|plan]"
 ---
@@ -13,7 +13,7 @@ Manually trigger structural review and/or cross-model adversarial review on the 
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. Output ALL user-facing messages in the detected language. The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. Output ALL user-facing messages in the detected language. The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Usage
 

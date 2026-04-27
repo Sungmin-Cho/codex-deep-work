@@ -290,12 +290,12 @@ if [[ -n "$PHASE5_MODE" ]]; then
                   # bash glob `*`의 `/` 포함 매치 및 임의 plugin에 대한 trust 위임을 원천 차단.
                   # 허용 plugin ID: `codex-deep-suite` (marketplace ID) 하위의 `deep-work` plugin만.
                   # /deep-review 2026-04-26 C4: Codex install 환경은 ~/.codex/plugins/cache 사용.
-                  # ~/.claude/plugins/cache 만 매치하면 정상 Codex helper 가 차단됨. dual-search.
+                  # legacy plugin cache 만 매치하면 정상 Codex helper 가 차단됨. dual-search.
                   _P5_CODEX_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.codex/plugins/cache")"
-                  _P5_CLAUDE_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
+                  _P5_LEGACY_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
                   if [[ -n "$_P5_CODEX_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_CODEX_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
                     _P5_HELPER_OK=1
-                  elif [[ -n "$_P5_CLAUDE_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_CLAUDE_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
+                  elif [[ -n "$_P5_LEGACY_CACHE_CANON" && "$_P5_HELPER_CANON" == "$_P5_LEGACY_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_HELPER_BASENAME" ]]; then
                     _P5_HELPER_OK=1
                   fi
                 fi
@@ -468,12 +468,12 @@ if [[ -n "$PHASE5_MODE" ]]; then
             _P5_IS_ALLOWED_SCRIPT=1
           else
             # v6.3.0 review C7-1/C8-2: plugin cache 경로를 codex-deep-suite/deep-work만 허용.
-            # /deep-review 2026-04-26 C4: Codex install 환경 ~/.codex/plugins/cache 우선 + .claude fallback.
+            # /deep-review 2026-04-26 C4: Codex install 환경 ~/.codex/plugins/cache 우선 + legacy fallback.
             _P5_CODEX_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.codex/plugins/cache")"
-            _P5_CLAUDE_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
+            _P5_LEGACY_CACHE_CANON="$(_p5_canonicalize "${HOME:-}/.claude/plugins/cache")"
             if [[ -n "$_P5_CODEX_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_CODEX_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
               _P5_IS_ALLOWED_SCRIPT=1
-            elif [[ -n "$_P5_CLAUDE_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_CLAUDE_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
+            elif [[ -n "$_P5_LEGACY_CACHE_CANON" && "$_P5_SCRIPT_CANON" == "$_P5_LEGACY_CACHE_CANON"/codex-deep-suite/deep-work/*/skills/deep-integrate/"$_P5_SCRIPT_BASE" ]]; then
               _P5_IS_ALLOWED_SCRIPT=1
             fi
           fi
@@ -571,8 +571,8 @@ fi
 # ─── Read tool input from stdin ───────────────────────────────
 # Phase-C 부록 F #6: parse_hook_stdin reads stdin envelope once + sets TOOL_INPUT
 # (inner .tool_input only, not envelope) + TOOL_NAME + 5 backward-compat aliases.
-# Replaces vendor's `$(cat)` + `CLAUDE_TOOL_USE_TOOL_NAME` env-var fallback (Codex
-# 환경에선 env vars 미설정).
+# Replaces vendor's `$(cat)` + legacy tool-name env fallback (Codex 환경에선
+# env vars 미설정).
 
 parse_hook_stdin
 

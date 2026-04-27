@@ -92,14 +92,14 @@ plan.md의 모든 SLICE-NNN에 대해 `$WORK_DIR/receipts/SLICE-NNN.json` 존재
 
 ### 4-1. Cross-Slice Spec Consistency (✅ Required)
 
-Agent(evaluator_model): 전체 receipt + plan.md 기반 cross-slice 일관성 검증.
+Codex worker/evaluator: 전체 receipt + plan.md 기반 cross-slice 일관성 검증.
 Phase 3에서 slice_review를 skip/self-review한 slice는 backfill(보완) review 포함.
 `done_with_concerns` slice는 extra scrutiny.
 결과: `$WORK_DIR/cross-slice-review.json`
 
 ### 4-2. Cross-Slice Quality Review (⚠️ Advisory)
 
-Agent(evaluator_model): 전체 git diff + receipt 기반 cross-cutting quality 검증.
+Codex worker/evaluator: 전체 git diff + receipt 기반 cross-cutting quality 검증.
 backfill 대상 slice 포함. Advisory — 차단 없음.
 
 ### 4-3. Verification Evidence (✅ Required)
@@ -109,7 +109,7 @@ backfill 대상 slice 포함. Advisory — 차단 없음.
 ### 4-4. SOLID Review (⚠️ Advisory)
 
 변경된 source 파일 대상 SOLID 원칙 평가 → `$WORK_DIR/solid-review.md`
-상세: Read("../shared/references/solid-guide.md")
+상세: read `../shared/references/solid-guide.md`
 
 ### 4-5. Insight Analysis (ℹ️ Insight)
 
@@ -133,10 +133,10 @@ Phase 1의 fitness_baseline과 현재 비교. 위반 증가 시 경고.
 
 ### 4-9. Health Required (✅ Required)
 
-Phase 1의 `unresolved_required_issues` 확인. 있으면 AskUserQuestion으로 acknowledge 요청.
+Phase 1의 `unresolved_required_issues` 확인. 있으면 번호형 사용자 확인으로 acknowledge 요청.
 
 모든 gate 후: quality_gates_passed 업데이트 + `$WORK_DIR/quality-gates.md` 작성.
-상세: Read("../shared/references/testing-guide.md")
+상세: read `../shared/references/testing-guide.md`
 
 # Section 3: 완료
 

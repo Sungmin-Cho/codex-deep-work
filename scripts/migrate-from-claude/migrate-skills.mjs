@@ -43,6 +43,18 @@ const PARALLEL_TASK_REPLACEMENT = 'Spawn N worker agents in sequence (multi_agen
 function applyToolMapping(src) {
   let out = src;
 
+  // 0. Codex runtime surface cleanup: remove Claude-specific root/env/tool API
+  // wording that would be misleading if copied into migrated skills.
+  out = out.replace(/\bCLAUDE_PLUGIN_ROOT\b/g, 'DEEP_WORK_PLUGIN_ROOT');
+  out = out.replace(/\bCLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\b/g, 'Codex multi_agent feature');
+  out = out.replace(/Use the Read tool/g, 'Use workspace read/search');
+  out = out.replace(/call Write to persist/g, 'use apply_patch to persist');
+  out = out.replace(/\bAgent\s*\(/g, 'spawn_agent request (');
+  out = out.replace(/\bsubagent_type\s*=/g, 'agent_prompt_contract=');
+  out = out.replace(/\bAgent tool\b/g, 'Codex spawn_agent');
+  out = out.replace(/Claude 에이전트/g, 'Codex worker agent');
+  out = out.replace(/Claude Code의 Agent tool/g, 'Codex spawn_agent');
+
   // 1. rename: TaskCreate/Update/List/Get/TodoWrite
   // call form: Token( ... )
   for (const [tok] of Object.entries(TOOL_MAPPING.rename)) {
@@ -69,6 +81,7 @@ function applyToolMapping(src) {
   out = out.replace(/\bTask\s+tool\b/g, 'spawn_agent dispatch');
   out = out.replace(/\bTask\s*\(\s*subagent_type\s*=\s*["']?([\w-]+)["']?[^)]*\)/g,
     'Spawn a worker agent (multi_agent) with agents/$1.md as message');
+  out = out.replace(/\bsubagent_type\b/g, 'agent_prompt_contract');
 
   // 3. natural_language_only: Skill / AskUserQuestion / TeamCreate / TeamDelete / TeamGet / SendMessage
   // Skill(...) 의 첫 quoted argument 캡쳐. args= 뒤따르는 케이스도 매칭. 본문 안 백틱 코드는 보존 의도지만,
@@ -92,6 +105,11 @@ function applyToolMapping(src) {
   // 5. AskUserQuestion 본문 narrative
   out = out.replace(/Use the \*?\*?AskUserQuestion\*?\*? tool[^.]*/g,
     'Ask the user a numbered-options question (1) ... 2) ... — 자연어 prompt)');
+  out = out.replace(/\bAskUserQuestion\b/g, 'numbered-choice prompt');
+  out = out.replace(
+    /번호형 사용자 확인:\n\n- header: "([^"]+)"\n(?:- multiSelect: false\n)?- options:\n/g,
+    '번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: $1\n'
+  );
 
   return out;
 }

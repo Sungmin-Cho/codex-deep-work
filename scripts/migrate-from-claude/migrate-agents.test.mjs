@@ -31,26 +31,28 @@ describe('migrate-agents parseFrontmatterTools (Plan-Patch-10)', () => {
 });
 
 describe('migrate-agents transformAgentFile', () => {
-  it('preserves frontmatter (name, tools, model)', () => {
+  it('preserves metadata while converting tools frontmatter to codex-capabilities', () => {
     const src = `---\nname: research-codebase-worker\ntools: [Read, Grep, Glob]\nmodel: opus\n---\n\nWorker.`;
     const out = transformAgentFile(src);
     assert.match(out, /name:\s*research-codebase-worker/);
-    assert.match(out, /tools:\s*\[Read,\s*Grep,\s*Glob\]/);
+    assert.doesNotMatch(out, /^tools:/m);
+    assert.match(out, /codex-capabilities:/);
+    assert.match(out, /workspace-read\/search/);
     assert.match(out, /model:\s*opus/);
   });
 
-  it('appends tool whitelist natural-language guidance to body (inline form)', () => {
+  it('appends Codex capability guidance to body (inline form)', () => {
     const src = `---\nname: x\ntools: [Read, Grep, Glob, Write]\n---\n\nWorker.`;
     const out = transformAgentFile(src);
-    assert.match(out, /You may only use Read, Grep, Glob, Write/);
-    assert.match(out, /do not run[\w\s,.]*Bash/i);
+    assert.match(out, /Codex capability guidance/);
+    assert.doesNotMatch(out, /Tool whitelist|You may only use Read/);
   });
 
-  it('appends tool whitelist guidance from multi-line YAML list (vendor form)', () => {
+  it('appends Codex capability guidance from multi-line YAML list (vendor form)', () => {
     const src = `---\nname: research-codebase-worker\ntools:\n  - Read\n  - Grep\n  - Glob\n  - Write\n---\n\nWorker.`;
     const out = transformAgentFile(src);
-    assert.match(out, /You may only use Read, Grep, Glob, Write/);
-    assert.match(out, /do not run[\w\s,.]*Bash/i);
+    assert.match(out, /Codex capability guidance/);
+    assert.doesNotMatch(out, /^tools:|Tool whitelist|You may only use Read/m);
   });
 
   it('demotes per-call model override to information-only note', () => {
@@ -71,8 +73,9 @@ describe('migrate-agents body Task → spawn_agent', () => {
 describe('migrate-agents extractToolWhitelistGuidance', () => {
   it('emits a guidance string from tools array', () => {
     const g = extractToolWhitelistGuidance(['Read', 'Grep', 'Glob']);
-    assert.match(g, /Read.*Grep.*Glob/);
-    assert.match(g, /do not run/i);
+    assert.match(g, /Codex capability guidance/);
+    assert.match(g, /workspace read\/search/);
+    assert.doesNotMatch(g, /Tool whitelist|You may only use/);
   });
 });
 

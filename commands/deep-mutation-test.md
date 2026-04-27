@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep
+codex-capabilities: exec_command, workspace-read/search, apply_patch
 description: "Run mutation testing on changed files to verify AI-generated test quality. Automatically fixes surviving mutants."
 ---
 <!-- migrated-by: codex-migrate v0.1 -->

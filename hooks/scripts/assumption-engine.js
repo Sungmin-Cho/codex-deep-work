@@ -494,7 +494,7 @@ const SIGNAL_EVALUATORS = {
       return (session.cross_model_unique_findings || 0) > 0;
     },
   },
-  'cross_model_agrees_with_claude_always': {
+  'cross_model_agrees_with_primary_always': {
     scope: 'session',
     fn: (session) => {
       return (session.cross_model_unique_findings || 0) === 0;

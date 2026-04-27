@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Glob, Bash
+codex-capabilities: workspace-read/search, exec_command
 description: "Check the current deep work session status and progress"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -10,7 +10,7 @@ Display the current state of the Deep Work session and session history.
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Instructions
 
@@ -218,7 +218,7 @@ Quality Gates: [통과 ✅ / 실패 ❌ / 미정의 ⬜]
    Brainstorm: [N/10 (N회) ✅ / 미실행 ⬜ / 스킵 ⏭️]
    Research: [N/10 (N회) ✅ / 미실행 ⬜ / 스킵 ⏭️]
    Plan (Structural): [N/10 (N회) ✅ / 미실행 ⬜ / 스킵 ⏭️]
-   Plan (Adversarial): [Claude N/10, Codex N/10 — Consensus N, Conflicts N, Waivers N / 미실행 / 도구 미설치]
+   Plan (Adversarial): [Primary N/10, Codex N/10 — Consensus N, Conflicts N, Waivers N / 미실행 / 도구 미설치]
 크로스 모델: [codex ✅ + gemini ❌ / 모두 미설치 / 비활성화]
 Assumption 조정: [N]건 적용됨 (v5.1)
 건너뛴 단계: [brainstorm, research, plan]

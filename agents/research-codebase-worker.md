@@ -17,16 +17,14 @@ description: |
   </example>
 model: inherit
 color: blue
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Write
+codex-capabilities:
+  - workspace-read/search
+  - artifact-write
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
 
 > **Note (B-α scope, semantic loss)**: `model` frontmatter is information-only. Codex `spawn_agent` does not support per-call model override — all workers use the Codex default model. `model_routing` field is preserved for future v0.2+ support but does not change runtime behavior.
-> **Tool whitelist (B-α natural-language guidance only — Codex does not enforce per-agent tools)**: You may only use Read, Grep, Glob, Write. Do not run Edit, MultiEdit, Bash, WebFetch, WebSearch.
+> **Codex capability guidance (B-α natural-language only)**: Use workspace read/search and write only the requested research artifact under `work_dir`. Do not modify source code.
 
 # Role
 You are a Research worker. You analyze an existing codebase and produce a

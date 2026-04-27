@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill, Read, Bash, Glob, Grep, Agent, AskUserQuestion
+codex-capabilities: skill invocation, workspace-read/search, exec_command, spawn_agent, numbered-choice prompt
 description: "Phase 5 Integrate — AI 추천 루프 명시적 호출 (Phase 4 Test 완료 후)"
 argument-hint: "[--session=<id>] [--skip-integrate]"
 ---

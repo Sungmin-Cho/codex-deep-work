@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Grep, Glob, Bash, Write, Agent
+codex-capabilities: workspace-read/search, exec_command, apply_patch, spawn_agent
 description: "SOLID design principles code review — evaluates SRP, OCP, LSP, ISP, DIP compliance. Standalone or deep-work Advisory Quality Gate."
 argument-hint: "target file or directory (optional)"
 ---
@@ -14,7 +14,7 @@ You are performing a **SOLID Design Review** — analyzing code against the 5 SO
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Critical Constraints
 
@@ -74,7 +74,7 @@ SOLID 리뷰 대상: [N]개 파일
 
 For each file (or logical group of related files), evaluate against all 5 SOLID principles.
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/shared/references/solid-guide.md` for the detailed checklist.
+Read `${DEEP_WORK_PLUGIN_ROOT}/skills/shared/references/solid-guide.md` for the detailed checklist.
 
 **Analysis approach**:
 - Do NOT mechanically check every rule against every file
@@ -140,7 +140,7 @@ For each violation or improvement finding, provide a concrete refactoring sugges
 
 ### 6. AI 프롬프트 개선 제안 (워크플로우 모드, 선택적)
 
-If running in **workflow mode** and clear SOLID violations were found, read `${CLAUDE_PLUGIN_ROOT}/skills/shared/references/solid-prompt-guide.md` and suggest how plan.md could be improved:
+If running in **workflow mode** and clear SOLID violations were found, read `${DEEP_WORK_PLUGIN_ROOT}/skills/shared/references/solid-prompt-guide.md` and suggest how plan.md could be improved:
 
 ```markdown
 ## AI 프롬프트 개선 제안

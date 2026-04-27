@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash, Read, Glob, Grep
+codex-capabilities: exec_command, workspace-read/search
 description: "Run computational sensors (linter, type checker, coverage) on the project. Works independently of deep-work sessions."
 ---
 <!-- migrated-by: codex-migrate v0.1 -->

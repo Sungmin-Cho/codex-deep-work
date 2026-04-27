@@ -71,7 +71,7 @@ function checkTddEnforcement(tddState, filePath, tddMode, exemptPatterns, tddOve
     return { allowed: true };
   }
 
-  // TDD override = slice-level skip (user chose to bypass TDD via AskUserQuestion)
+  // TDD override = slice-level skip (user chose to bypass TDD via numbered prompt)
   if (tddOverride) {
     return { allowed: true };
   }

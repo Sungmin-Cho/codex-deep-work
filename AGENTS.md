@@ -11,12 +11,11 @@ commands, skills, hooks, sensors, health checks, and migration tooling.
 - Suite marketplace repo: `Sungmin-Cho/codex-deep-suite`
 - Plugin manifest: `.codex-plugin/plugin.json`
 - Main Codex entrypoint: `$deep-work:deep-work-orchestrator "task description"`
-- Migrated command spec: `commands/deep-work.md` (`/deep-work` in legacy
-  slash-command wording)
+- Migrated command spec: `commands/deep-work.md` (`/deep-work` in legacy slash-command wording)
 - Test command: `npm test`
 - Current migration scope: **B-alpha**. The port preserves the user-facing
   workflow where Codex has equivalent primitives, and documents weaker areas
-  where Codex does not yet expose the same enforcement surface as Claude Code.
+  where Codex does not yet expose the same enforcement surface as the source plugin.
 
 ## Contents
 
@@ -59,14 +58,14 @@ enforcement will be weaker.
 - `skills/` - Codex skill entrypoints and workflow wrappers. User-facing
   invocation uses `$deep-work:<skill-name>`.
 - `agents/` - Worker prompt contracts for research and implementation. Codex
-  does not enforce Claude-style per-agent tool frontmatter.
+  does not enforce legacy per-agent tool frontmatter.
 - `hooks/` - Runtime hook scripts and hook templates. These enforce phases,
   track files, update receipts, and trigger sensors.
 - `sensors/` - Ecosystem detection and computational sensor execution.
 - `health/` - Health baseline and project health-check logic.
 - `templates/` - Topology and harness template helpers.
 - `scripts/migrate-from-claude/` - One-time and regression-tested migration
-  tooling from the Claude Code plugin source.
+  tooling from the legacy source plugin.
 - `vendor/` - Source snapshot metadata for migration reference.
 - `assumptions.json` - Explicit assumptions and advisory enforcement gaps.
 - `docs/` - Local migration records and phase evidence. Do not treat docs as
@@ -108,14 +107,13 @@ hooks, README, and tests. Do not assume reference docs drive runtime behavior.
 
 ## B-alpha Compatibility Notes
 
-Codex currently lacks some Claude Code plugin semantics:
+Codex currently lacks some source-plugin semantics:
 
 - Per-call worker model overrides are information-only. Spawned workers use the
   active Codex model unless Codex adds runtime model routing support.
 - Per-agent tool allowlists are not runtime-enforced by Codex. This repo records
   tool usage in receipts and validates it later where possible.
-- Structured `AskUserQuestion` options are represented as natural-language
-  prompts.
+- Structured interactive-choice options are represented as numbered natural-language prompts.
 - Team namespace APIs are not available. Parallel aggregation is preserved via
   multiple `spawn_agent` calls, but inter-agent messaging is not.
 
@@ -124,7 +122,7 @@ Treat these as documented semantic losses, not accidental TODOs.
 ## Migration Tooling
 
 The scripts in `scripts/migrate-from-claude/` are used to reproduce and verify
-the Claude-to-Codex migration. Their default paths are repo-relative, so they
+the source-to-Codex migration. Their default paths are repo-relative, so they
 continue to work after the repository is moved.
 
 Common checks:

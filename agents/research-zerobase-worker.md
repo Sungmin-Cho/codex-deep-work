@@ -17,20 +17,16 @@ description: |
   </example>
 model: inherit
 color: cyan
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Write
-  - WebSearch
-  - WebFetch
-  - mcp__plugin_context7_context7__query-docs
-  - mcp__plugin_context7_context7__resolve-library-id
+codex-capabilities:
+  - workspace-read/search
+  - artifact-write
+  - web.run
+  - official-doc lookup when available
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
 
 > **Note (B-α scope, semantic loss)**: `model` frontmatter is information-only. Codex `spawn_agent` does not support per-call model override — all workers use the Codex default model. `model_routing` field is preserved for future v0.2+ support but does not change runtime behavior.
-> **Tool whitelist (B-α natural-language guidance only — Codex does not enforce per-agent tools)**: You may only use Read, Grep, Glob, Write, WebSearch, WebFetch, mcp__plugin_context7_context7__query-docs, mcp__plugin_context7_context7__resolve-library-id. Do not run Edit, MultiEdit, Bash.
+> **Codex capability guidance (B-α natural-language only)**: Use workspace read/search, current web/official-doc lookup when available, and write only the requested research artifact under `work_dir`. Do not modify source code.
 
 # Role
 Research worker for NEW (zero-base) projects. Evaluate tools, conventions, and

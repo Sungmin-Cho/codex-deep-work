@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Bash
+codex-capabilities: workspace-read/search, exec_command
 description: "Assumption health report — validate whether deep-work's enforcement rules are still justified by session evidence"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ Analyze deep-work's enforcement assumptions against session history to determine
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Usage
 
@@ -136,8 +136,8 @@ ASSUMPTION HEALTH REPORT ([N] sessions analyzed)
    Evidence:   5 supporting / 4 weakening / 3 neutral
    Confidence: MEDIUM (0.56)
    Verdict:    CONSIDER loosening to "coaching"
-   [claude-opus-4-6]: HIGH (0.78) — 5S/1W/8 sessions
-   [claude-sonnet-4-6]: LOW (0.32) — 0S/3W/4 sessions
+   [primary-reviewer-a]: HIGH (0.78) — 5S/1W/8 sessions
+   [primary-reviewer-b]: LOW (0.32) — 0S/3W/4 sessions
 
 3. research_required_before_plan
    ...

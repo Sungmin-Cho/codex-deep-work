@@ -6,12 +6,33 @@ import {
   prependFirstRunInstall,
 } from './migrate-skills.mjs';
 
-describe('migrate-skills native_passthrough', () => {
-  it('keeps Read/Write/Edit/Bash unchanged', () => {
+describe('migrate-skills Codex surface mapping', () => {
+  it('maps Claude-native tool narration to Codex capability narration', () => {
     const src = `Use the Read tool to load the file. Then call Write to persist.`;
     const out = transformSkillBody(src, 'deep-research');
-    assert.ok(out.includes('Read tool'));
-    assert.ok(out.includes('Write'));
+    assert.doesNotMatch(out, /Read tool|call Write/);
+    assert.match(out, /workspace read\/search|apply_patch/);
+  });
+
+  it('replaces Claude plugin root and agent-team env vars', () => {
+    const src = `node \${CLAUDE_PLUGIN_ROOT}/x.js && echo \${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.doesNotMatch(out, /CLAUDE_PLUGIN_ROOT|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS/);
+    assert.match(out, /DEEP_WORK_PLUGIN_ROOT|multi_agent/i);
+  });
+
+  it('converts Claude Agent call form to Codex spawn_agent wording', () => {
+    const src = `Agent(subagent_type="deep-work:research-codebase-worker", prompt="area=full")`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.doesNotMatch(out, /\bAgent\s*\(|subagent_type/);
+    assert.match(out, /spawn_agent/);
+  });
+
+  it('converts bare subagent_type wording to Codex prompt contract wording', () => {
+    const src = `zero-base 경우 subagent_type은 research-zerobase-worker.`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.doesNotMatch(out, /\bsubagent_type\b/);
+    assert.match(out, /agent_prompt_contract/);
   });
 });
 
@@ -67,6 +88,19 @@ describe('migrate-skills natural_language_only', () => {
     const out = transformSkillBody(src, 'deep-work-orchestrator');
     assert.ok(!/AskUserQuestion\(/.test(out));
     assert.ok(/numbered|1\)|숫자/i.test(out));
+  });
+
+  it('converts migrated structured prompt blocks to plain numbered prompt wording', () => {
+    const src = `번호형 사용자 확인:
+
+- header: "Phase 1 완료. 어떻게 진행할까요?"
+- multiSelect: false
+- options:
+  1. "다음 phase로 진행"
+  2. "이 phase 재실행/수정"`;
+    const out = transformSkillBody(src, 'deep-work-orchestrator');
+    assert.doesNotMatch(out, /^- header:|^- multiSelect:|^- options:/m);
+    assert.match(out, /사용자에게 다음 번호 중 하나로 응답하도록 묻는다/);
   });
 
   it('converts TeamCreate to natural language fallback', () => {

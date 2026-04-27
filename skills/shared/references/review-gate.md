@@ -7,7 +7,7 @@ Phase 문서(brainstorm.md, research.md, plan.md)에 대한 자동 품질 검증
 두 가지 레벨의 리뷰를 제공한다:
 
 1. **Structural Review** — haiku subagent가 phase별 차원에서 문서를 평가
-2. **Adversarial Review** — 외부 모델(codex, gemini)이 plan.md를 독립 평가 후, Claude가 종합
+2. **Adversarial Review** — 외부 모델(codex, gemini)이 plan.md를 독립 평가 후, 메인 Codex 세션이 종합
 
 ## Minimum Document Size
 
@@ -22,7 +22,7 @@ Phase 문서(brainstorm.md, research.md, plan.md)에 대한 자동 품질 검증
 
 ### 실행 방법
 
-Claude가 Agent(haiku 모델)를 스폰하여 현재 phase의 문서를 리뷰한다.
+메인 Codex 세션이 Codex worker/evaluator를 스폰하여 현재 phase의 문서를 리뷰한다.
 
 **Agent prompt 템플릿:**
 ```
@@ -255,7 +255,7 @@ Output ONLY valid JSON in this schema:
 ### JSON 파싱 전략
 
 1. 모델 출력을 JSON으로 파싱 시도
-2. **파싱 실패 시**: raw output을 저장하고, Claude가 ` ```json ` 블록에서 JSON 추출 시도
+2. **파싱 실패 시**: raw output을 저장하고, 메인 Codex 세션이 ` ```json ` 블록에서 JSON 추출 시도
 3. **그래도 실패 시**: 해당 모델을 `failed` 상태로 기록하고, 콘솔에 경고 출력:
    ```
    ⚠️ ${model} 출력을 JSON으로 파싱할 수 없습니다. 해당 모델 리뷰를 건너뜁니다.
@@ -279,7 +279,7 @@ JSON 파싱 실패, timeout (120초 초과), CLI 에러 시:
 
 ### 결과 종합
 
-Claude가 모든 **성공한** 모델 결과를 종합하여 다음을 도출한다:
+메인 Codex 세션이 모든 **성공한** 모델 결과를 종합하여 다음을 도출한다:
 
 1. **Consensus** (합의): 2개 이상의 성공한 리뷰어가 동의하는 이슈 (degraded mode에서는 불가)
 2. **Conflicts** (충돌): 2개 이상의 성공한 리뷰어 간 점수 차이 ≥ 3 또는 대립하는 결론 (degraded mode에서는 불가)
@@ -292,16 +292,16 @@ Claude가 모든 **성공한** 모델 결과를 종합하여 다음을 도출한
 
 > **Note:** 이 섹션은 종합 판단 프로토콜(Section 4-1)에서 사용자가 "항목별 조정"을 선택했을 때, 해당 항목에 대해서만 호출된다. 직접 호출되지 않는다.
 
-각 conflict에 대해 `AskUserQuestion`으로 4가지 선택지를 제시한다:
+각 conflict에 대해 `numbered-choice prompt`으로 4가지 선택지를 제시한다:
 
 ```
 Conflict detected on: [dimension / section]
 
-  Claude (score: ${claudeScore}): ${claudeAssessment}
+  Primary (score: ${primaryScore}): ${primaryAssessment}
   ${otherModel} (score: ${otherScore}): ${otherAssessment}
 
-  1️⃣ Accept Claude's assessment (no change)
-  2️⃣ Accept ${otherModel}'s assessment (Claude rewrites section)
+  1️⃣ Accept primary assessment (no change)
+  2️⃣ Accept ${otherModel} assessment (main Codex session rewrites section)
   3️⃣ Waiver — acknowledge but skip (requires justification)
   4️⃣ Manual edit — you'll edit plan.md directly
 
@@ -312,8 +312,8 @@ Choose [1-4]:
 
 | Option | 동작 |
 |--------|------|
-| **1 — Accept Claude** | 변경 없음. Conflict를 resolved로 기록 |
-| **2 — Accept other model** | Claude가 해당 section을 재작성 → structural re-review 트리거 |
+| **1 — Accept primary** | 변경 없음. Conflict를 resolved로 기록 |
+| **2 — Accept other model** | 메인 Codex 세션이 해당 section을 재작성 → structural re-review 트리거 |
 | **3 — Waiver** | 사용자에게 justification 입력 요청. Waiver를 JSON에 기록 |
 | **4 — Manual edit** | 사용자가 직접 plan.md를 수정하도록 안내. 수정 후 re-review 권장 |
 
@@ -321,15 +321,15 @@ Choose [1-4]:
 
 ## 4-1. 종합 판단 + 일괄 확인 프로토콜 (research/plan 공통)
 
-Structural review + cross-model review 완료 후, Claude가 모든 결과를 종합 분석하여 사용자에게 일괄 확인을 받는다.
+Structural review + cross-model review 완료 후, 메인 Codex 세션이 모든 결과를 종합 분석하여 사용자에게 일괄 확인을 받는다.
 
-### Claude 종합 판단 생성
+### Codex 종합 판단 생성
 
-Claude는 다음 기준으로 각 이슈에 대해 판단한다:
+메인 Codex 세션은 다음 기준으로 각 이슈에 대해 판단한다:
 
 1. **Consensus 이슈** (모든 리뷰어 동의): 기본적으로 `accept`
-2. **Conflict 이슈** (리뷰어 간 점수 차이 >= 3): Claude가 코드베이스 컨텍스트를 기반으로 판단
-3. **단독 이슈** (한 리뷰어만 제기 — degraded mode 포함): Claude가 유효성 검증 후 판단
+2. **Conflict 이슈** (리뷰어 간 점수 차이 >= 3): 메인 Codex 세션이 코드베이스 컨텍스트를 기반으로 판단
+3. **단독 이슈** (한 리뷰어만 제기 — degraded mode 포함): 메인 Codex 세션이 유효성 검증 후 판단
 
 판단 유형:
 - `accept` — 수용 (문서 수정 필요)
@@ -347,16 +347,16 @@ Structural Review: [score]/10
 Cross-Model: codex [score]/10, gemini [score]/10
 
 Consensus (모든 리뷰어 동의) — [N]건:
-  ✅ [CR-001] [이슈 설명] — Claude: 수용
+  ✅ [CR-001] [이슈 설명] — Codex: 수용
 
 Conflicts (리뷰어 간 의견 충돌) — [N]건:
   ✅ [CR-002] [이슈 설명]
-     Claude [score] vs codex [score]: Claude 판단 — 수용 ([이유])
+     Primary [score] vs codex [score]: Codex 판단 — 수용 ([이유])
   ❌ [CR-003] [이슈 설명]
-     Claude [score] vs gemini [score]: Claude 판단 — 거절 ([이유])
+     Primary [score] vs gemini [score]: Codex 판단 — 거절 ([이유])
 
 단독 이슈 — [N]건:
-  ⚠️ [CR-004] [이슈 설명] — Claude: 부분 수용 ([범위])
+  ⚠️ [CR-004] [이슈 설명] — Codex: 부분 수용 ([범위])
 
 ---
 수정 예정: [N]건 | 거절: [N]건 | 부분 수용: [N]건
@@ -374,7 +374,7 @@ Conflicts (리뷰어 간 의견 충돌) — [N]건:
 
 Structural Review: [score]/10
 
-Claude 판단:
+Codex 판단:
   ✅ 수용: [이슈 설명] — [수용 이유]
   ❌ 거절: [이슈 설명] — [거절 이유]
 
@@ -563,10 +563,10 @@ interface ConflictItem {
   dimension: string;
   /** Section in plan.md */
   section?: string;
-  /** Claude's score for this dimension */
-  claude_score: number;
-  /** Claude's assessment */
-  claude_assessment: string;
+  /** Primary reviewer score for this dimension */
+  primary_score: number;
+  /** Primary reviewer assessment */
+  primary_assessment: string;
   /** Other model's name */
   other_reviewer: string;
   /** Other model's score */
@@ -574,7 +574,7 @@ interface ConflictItem {
   /** Other model's assessment */
   other_assessment: string;
   /** How it was resolved */
-  resolution: 'accept_claude' | 'accept_other' | 'waiver' | 'manual_edit' | 'pending';
+  resolution: 'accept_primary' | 'accept_other' | 'waiver' | 'manual_edit' | 'pending';
   /** Waiver justification (if resolution is 'waiver') */
   waiver_justification?: string;
 }
@@ -593,7 +593,7 @@ interface WaiverItem {
 
 /** Complete adversarial review result (aggregated) */
 interface AdversarialReviewResult {
-  /** Claude's structural review */
+  /** Primary structural review */
   structural: ReviewResult;
   /** Results from each external model */
   adversarial_reviewers: AdversarialReviewerResult[];
@@ -632,14 +632,14 @@ interface AdversarialReviewResult {
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `review_results.{phase}.model_scores` | `Record<string, number>` | Cross-model 리뷰어별 점수 |
-| `review_results.{phase}.judgments` | `JudgmentResult[]` | Claude 종합 판단 결과 |
+| `review_results.{phase}.judgments` | `JudgmentResult[]` | Codex 종합 판단 결과 |
 | `review_results.{phase}.judgments_timestamp` | `string` | 종합 판단 완료 시각 (단일 ISO timestamp, invalidation 기준) |
 | `review_results.{phase}.reviewer_status` | `Record<string, "completed"\|"failed"\|"skipped">` | 리뷰어별 상태 |
 
 여기서 `{phase}`는 `research` 또는 `plan`. 양쪽 모두 동일 구조.
 
 ```typescript
-/** Single judgment from Claude's consolidated review */
+/** Single judgment from Codex consolidated review */
 interface JudgmentResult {
   issue_id: string;
   judgment: 'accept' | 'reject' | 'partial';
@@ -652,7 +652,7 @@ interface PhaseReviewResults {
   score?: number;                    // structural review score
   iterations?: number;               // structural review iterations
   model_scores?: Record<string, number>;  // cross-model scores
-  judgments?: JudgmentResult[];       // Claude 종합 판단
+  judgments?: JudgmentResult[];       // Codex 종합 판단
   judgments_timestamp?: string;       // 단일 invalidation timestamp (ISO)
   reviewer_status?: Record<string, 'completed' | 'failed' | 'skipped'>;
   conflicts?: ConflictItem[];         // 충돌 항목

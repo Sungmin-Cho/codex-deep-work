@@ -113,7 +113,7 @@ When all tasks are done:
    - Tasks completed vs total
    - Files modified/created
    - Any issues encountered
-3. **Return control to Orchestrator Exit Gate (§3-4)** — Orchestrator가 AskUserQuestion으로 "다음 phase로 진행 / 재실행 / 일시정지"를 사용자에게 묻는다. "진행" 선택 시 Orchestrator가 `current_phase: test`로 전환하고 Test phase를 호출한다.
+3. **Return control to Orchestrator Exit Gate (§3-4)** — Orchestrator가 번호형 사용자 확인으로 "다음 phase로 진행 / 재실행 / 일시정지"를 사용자에게 묻는다. "진행" 선택 시 Orchestrator가 `current_phase: test`로 전환하고 Test phase를 호출한다.
 4. Test phase가 자동 verification (type check, lint, test) 및 implement-test retry loop을 처리한다. Session report는 All Pass 이후 생성된다.
 
 For testing phase details, see [Testing Guide](testing-guide.md).
