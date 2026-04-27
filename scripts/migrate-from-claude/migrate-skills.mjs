@@ -81,6 +81,7 @@ function applyToolMapping(src) {
   out = out.replace(/\bTask\s+tool\b/g, 'spawn_agent dispatch');
   out = out.replace(/\bTask\s*\(\s*subagent_type\s*=\s*["']?([\w-]+)["']?[^)]*\)/g,
     'Spawn a worker agent (multi_agent) with agents/$1.md as message');
+  out = out.replace(/\bsubagent_type\b/g, 'agent_prompt_contract');
 
   // 3. natural_language_only: Skill / AskUserQuestion / TeamCreate / TeamDelete / TeamGet / SendMessage
   // Skill(...) 의 첫 quoted argument 캡쳐. args= 뒤따르는 케이스도 매칭. 본문 안 백틱 코드는 보존 의도지만,
@@ -105,6 +106,10 @@ function applyToolMapping(src) {
   out = out.replace(/Use the \*?\*?AskUserQuestion\*?\*? tool[^.]*/g,
     'Ask the user a numbered-options question (1) ... 2) ... — 자연어 prompt)');
   out = out.replace(/\bAskUserQuestion\b/g, 'numbered-choice prompt');
+  out = out.replace(
+    /번호형 사용자 확인:\n\n- header: "([^"]+)"\n(?:- multiSelect: false\n)?- options:\n/g,
+    '번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: $1\n'
+  );
 
   return out;
 }

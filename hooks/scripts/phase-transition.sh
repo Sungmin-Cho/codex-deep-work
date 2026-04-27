@@ -103,7 +103,7 @@ fi
 
 if [[ "$TEAM_MODE" == "team" ]]; then
   OUTPUT+="👥 team_mode: team"$'\n'
-  OUTPUT+="   → TeamCreate 사용하여 병렬 에이전트 실행"$'\n'
+  OUTPUT+="   → Codex spawn_agent로 병렬 worker 실행"$'\n'
   HAS_CONDITIONS=true
 fi
 

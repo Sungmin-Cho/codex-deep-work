@@ -122,7 +122,7 @@ write_session_pointer "$SESSION_ID"
 
 프로필 로드 성공 시 이 단계 전부 건너뜀.
 
-1. **작업 모드**: Solo / Team → Team 선택 시 Agent Teams 환경변수 확인
+1. **작업 모드**: Solo / Team → Team 선택 시 Codex `multi_agent` feature 확인
 2. **모델 라우팅**: 기본값(R=sonnet, P=main, I=sonnet, T=haiku) / 커스텀
 3. **알림**: 없음 / 로컬 / 외부 채널 (Slack/Discord/Telegram/Webhook)
 4. **프로젝트 타입**: 기존 코드베이스 / 제로베이스
@@ -218,14 +218,11 @@ Brainstorm skill의 Section 3 완료 메시지 출력 후:
 
 ### Exit Gate (Phase 0 → Phase 1)
 
-번호형 사용자 확인:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 0 (Brainstorm) 완료. 어떻게 진행할까요?"
-- multiSelect: false
-- options:
-  1. label: "다음 phase로 진행", description: "즉시 Phase 1 Research를 시작합니다"
-  2. label: "이 phase 재실행/수정", description: "Brainstorm을 재실행하거나 brainstorm.md를 편집합니다"
-  3. label: "일시정지", description: "세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다"
+1. "다음 phase로 진행" — 즉시 Phase 1 Research를 시작합니다
+2. "이 phase 재실행/수정" — Brainstorm을 재실행하거나 brainstorm.md를 편집합니다
+3. "일시정지" — 세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다
 
 분기:
 - option 1 → **즉시 `current_phase: research` 설정** (F1 Option A) → **§3-2 Research로 dispatch** (§3-2 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill을 직접 호출하지 않는다 — §3-2 본문과 중복 실행 방지 (v6.3.1 NO1 fix).
@@ -279,13 +276,11 @@ Phase Skill 완료 후:
 
 ### Exit Gate (Phase 1 → Phase 2)
 
-번호형 사용자 확인:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 1 (Research) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
-  2. "이 phase 재실행/수정"
-  3. "일시정지"
+1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
+2. "이 phase 재실행/수정"
+3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: plan` 설정** → **§3-3 Plan으로 dispatch** (§3-3 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -329,13 +324,11 @@ the deep-plan skill
 
 ### Exit Gate (Phase 2 → Phase 3)
 
-번호형 사용자 확인:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 2 (Plan) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행"
-  2. "이 phase 재실행/수정"
-  3. "일시정지"
+1. "다음 phase로 진행"
+2. "이 phase 재실행/수정"
+3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: implement` 설정** → **§3-4 Implement로 dispatch** (§3-4 body가 Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -352,12 +345,10 @@ Implement skill의 Section 3 완료 후:
 
 ### Exit Gate (Phase 3 → Phase 4)
 
-번호형 사용자 확인:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 3 (Implement) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행"
-  2. "이 phase 재실행/수정"
+1. "다음 phase로 진행"
+2. "이 phase 재실행/수정"
   3. "일시정지"
 
 분기:
@@ -383,13 +374,11 @@ the deep-test skill
 
 `$ARGUMENTS`에 `--skip-integrate` 포함 시 Exit Gate 생략하고 바로 §3-6 Finish 진입.
 
-번호형 사용자 확인:
+번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
 
-- header: "Phase 4 (Test) 완료. 어떻게 진행할까요?"
-- options:
-  1. "다음 phase로 진행" — Phase 5 Integrate
-  2. "Integrate 건너뛰고 Finish"
-  3. "Test 재실행"
+1. "다음 phase로 진행" — Phase 5 Integrate
+2. "Integrate 건너뛰고 Finish"
+3. "Test 재실행"
   4. "일시정지"
 
 분기:

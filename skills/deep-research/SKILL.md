@@ -169,7 +169,7 @@ worker 2: area=patterns;     work_dir=<$WORK_DIR>; task=<task_description>; targ
 worker 3: area=risks;        work_dir=<$WORK_DIR>; task=<task_description>; target_root=<$TARGET_ROOT>; re_run_area=<--scope or null>; incremental_since=<--incremental or null>
 ```
 
-(zero-base 경우 area 값은 `tech-stack` / `conventions` / `data-model`. subagent_type은 `research-zerobase-worker`.)
+(zero-base 경우 area 값은 `tech-stack` / `conventions` / `data-model`. worker prompt contract는 `research-zerobase-worker`.)
 
 각 Agent가 `$TARGET_ROOT`를 분석하고 `$WORK_DIR/research-{area}.md` 부분 파일을 작성. 완료 후 부모가 3개 파일을 Read → Document Refinement Protocol (Apply / Deduplicate / Prune) → `$WORK_DIR/research.md` 로 merge.
 
