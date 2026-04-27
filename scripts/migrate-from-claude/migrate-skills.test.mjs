@@ -6,12 +6,26 @@ import {
   prependFirstRunInstall,
 } from './migrate-skills.mjs';
 
-describe('migrate-skills native_passthrough', () => {
-  it('keeps Read/Write/Edit/Bash unchanged', () => {
+describe('migrate-skills Codex surface mapping', () => {
+  it('maps Claude-native tool narration to Codex capability narration', () => {
     const src = `Use the Read tool to load the file. Then call Write to persist.`;
     const out = transformSkillBody(src, 'deep-research');
-    assert.ok(out.includes('Read tool'));
-    assert.ok(out.includes('Write'));
+    assert.doesNotMatch(out, /Read tool|call Write/);
+    assert.match(out, /workspace read\/search|apply_patch/);
+  });
+
+  it('replaces Claude plugin root and agent-team env vars', () => {
+    const src = `node \${CLAUDE_PLUGIN_ROOT}/x.js && echo \${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.doesNotMatch(out, /CLAUDE_PLUGIN_ROOT|CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS/);
+    assert.match(out, /DEEP_WORK_PLUGIN_ROOT|multi_agent/i);
+  });
+
+  it('converts Claude Agent call form to Codex spawn_agent wording', () => {
+    const src = `Agent(subagent_type="deep-work:research-codebase-worker", prompt="area=full")`;
+    const out = transformSkillBody(src, 'deep-research');
+    assert.doesNotMatch(out, /\bAgent\s*\(|subagent_type=/);
+    assert.match(out, /spawn_agent/);
   });
 });
 

@@ -34,11 +34,10 @@ init_deep_work_state
 
 # ─── Read tool input ─────────────────────────────────────
 # PostToolUse hooks 배열에서 앞선 hook(file-tracker.sh)이 stdin을 소비하므로
-# 여기서는 stdin을 읽을 수 없다. v6.2.4 이전: CLAUDE_TOOL_INPUT 환경변수를
-# 시도했지만 이는 Claude Code hook 프로토콜에 정의되어 있지 않아 프로덕션
-# 에서는 사실상 빈 문자열이었다. 이제는 file-tracker.sh가 stdin을 읽으며
-# $PPID 키로 캐시해 두고, 우리가 그 캐시 파일을 읽는다. 환경변수도
-# 혹시 미래 버전에서 설정될 가능성을 고려해 우선 확인한다.
+# 여기서는 stdin을 읽을 수 없다. v6.2.4 이전에는 legacy env alias를
+# fallback으로 시도했지만 Codex hook envelope에서는 비어 있을 수 있었다.
+# 이제는 file-tracker.sh가 stdin을 읽으며 $PPID 키로 캐시해 두고,
+# 우리가 그 캐시 파일을 읽는다. 환경변수도 compatibility fallback으로 확인한다.
 TOOL_INPUT="${CLAUDE_TOOL_USE_INPUT:-${CLAUDE_TOOL_INPUT:-}}"
 if [[ -z "$TOOL_INPUT" ]]; then
   _HOOK_INPUT_CACHE="$PROJECT_ROOT/.codex/.hook-tool-input.${PPID}"

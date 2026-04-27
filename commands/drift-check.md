@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Grep, Glob, Bash
+codex-capabilities: workspace-read/search, exec_command
 description: "Plan alignment verification — detects unimplemented items, out-of-scope changes, and design drift. Standalone or deep-work Required Gate."
 argument-hint: "plan file path (optional, defaults to active session's plan.md)"
 ---
@@ -14,7 +14,7 @@ You are performing a **Plan Alignment Check** — comparing the approved plan ag
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure.
 
 ## Critical Constraints
 

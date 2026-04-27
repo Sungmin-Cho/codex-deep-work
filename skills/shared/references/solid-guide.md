@@ -3,7 +3,7 @@
 
 ## Purpose
 
-This guide provides framework-agnostic checklists for evaluating code against the 5 SOLID principles. The reviewer (Claude) should interpret these criteria in the context of the target code's language and framework — no framework-specific rules are needed.
+This guide provides framework-agnostic checklists for evaluating code against the 5 SOLID principles. The reviewer (Codex) should interpret these criteria in the context of the target code's language and framework — no framework-specific rules are needed.
 
 ## Principles
 

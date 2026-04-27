@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "comment": "Migrated from claude-deep-work v6.4.0/assumptions.json. Phase C 부록 F #4: post_hoc_tool_whitelist_enforcement 신규 — Codex 가 plugin-level per-agent tools whitelist 강제 불가능 (CC frontmatter `tools:` 필드 미지원) → receipt 의 `tools_used` 필드로 사후 신호화.",
+  "comment": "Migrated from claude-deep-work v6.4.0/assumptions.json. Phase C 부록 F #4: post_hoc_tool_whitelist_enforcement 신규 — Codex 가 plugin-level per-agent capability constraints 강제 불가능 (legacy frontmatter `tools:` 필드 미지원) → receipt 의 `tools_used` 필드로 사후 신호화.",
   "assumptions": [
     {
       "id": "phase_guard_blocks_edits",
@@ -45,7 +45,7 @@
       "hypothesis": "Multi-model adversarial review catches defects that single-model review misses",
       "evidence_signals": {
         "supporting": ["cross_model_found_unique_issues > 0", "plan_revision_after_cross_review", "quality_score_with_cross_review > quality_score_without"],
-        "weakening": ["cross_model_agrees_with_claude_always", "zero_actionable_findings", "quality_score_without_cross_review >= quality_score_with_cross_review"]
+        "weakening": ["cross_model_agrees_with_primary_always", "zero_actionable_findings", "quality_score_without_cross_review >= quality_score_with_cross_review"]
       },
       "current_enforcement": "optional",
       "adjustable_levels": ["required", "optional", "off"],
@@ -79,7 +79,7 @@
     {
       "id": "post_hoc_tool_whitelist_enforcement",
       "component": "verify-receipt-core.js + file-tracker.sh + assumptions.json",
-      "hypothesis": "Post-hoc receipt validation can effectively detect per-agent tool whitelist violations when plugin-level enforcement is unavailable (Codex 환경에서 CC frontmatter `tools:` 필드 미지원). receipt 의 `tools_used` (hook-derived) 와 `model_used` 를 agent 별 자연어 가이드에 명시된 allowed tool 집합과 대조하여 위반 신호화.",
+      "hypothesis": "Post-hoc receipt validation can effectively detect per-agent capability-guidance violations when plugin-level enforcement is unavailable (Codex 환경에서 legacy frontmatter `tools:` 필드 미지원). receipt 의 `tools_used` (hook-derived) 와 `model_used` 를 agent 별 자연어 가이드에 명시된 allowed capability guidance와 대조하여 위반 신호화.",
       "evidence_signals": {
         "supporting": ["tools_used_violation_detected_post_hoc", "agent_attempted_disallowed_tool > 0", "violation_signal_correlates_with_quality_drop"],
         "weakening": ["tools_used_field_never_populated", "no_violations_detected_across_sessions", "post_hoc_signal_arrives_too_late_to_correct"]
@@ -88,7 +88,7 @@
       "adjustable_levels": ["advisory", "warn", "off"],
       "minimum_sessions_for_evaluation": 10,
       "_rationale_for_10": "post-hoc enforcement 의 효력은 violation rate × correction window 의 곱 — 두 변수의 분산이 커서 더 많은 데이터 필요. plugin-level enforcement 부재의 영향이 누적되어야 측정 가능.",
-      "_codex_specific_context": "spec Section 2-5 / 3-6: agent .md 본문의 자연어 가이드 ('You may only use Read/Grep/Glob/Write tools — do not run Bash or Edit') 를 receipt 의 tools_used 와 대조. CC era 의 plugin.json `agents[].tools` 필드 부활 시 이 hypothesis 는 자동 obsolete."
+      "_codex_specific_context": "spec Section 2-5 / 3-6: agent .md 본문의 Codex capability guidance 를 receipt 의 tools_used 와 대조. runtime-enforced per-agent capability metadata 가 Codex 에 추가되면 이 hypothesis 는 자동 obsolete."
     }
   ]
 }

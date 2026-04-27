@@ -24,7 +24,7 @@ $deep-work:deep-work-orchestrator "your task description"
 Drives 6-phase auto-flow: Brainstorm → Research → Plan → Implement → Test → Integrate.
 
 Codex invokes plugin skills with `$plugin:skill` syntax. The migrated
-`commands/` files still use Claude Code slash-command names such as
+`commands/` files still use legacy slash-command labels such as
 `/deep-work` as internal command-spec labels, but those are not the primary
 Codex invocation surface.
 

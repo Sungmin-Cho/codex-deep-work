@@ -15,10 +15,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function extractToolWhitelistGuidance(tools) {
   if (!tools || tools.length === 0) return '';
-  const list = tools.join(', ');
-  const allTools = ['Read', 'Write', 'Edit', 'MultiEdit', 'Bash', 'Glob', 'Grep', 'WebFetch', 'WebSearch'];
-  const forbidden = allTools.filter(t => !tools.includes(t));
-  return `> **Tool whitelist (B-α natural-language guidance only — Codex does not enforce per-agent tools)**: You may only use ${list}. Do not run ${forbidden.join(', ') || 'other tools'}.\n`;
+  const caps = mapAgentCapabilities(tools);
+  return `> **Codex capability guidance (B-α natural-language only)**: Use ${caps.join(', ')} as needed for the assigned worker contract. Keep writes inside the declared scope and record evidence in the required artifact or receipt.\n`;
 }
 
 // Plan-Patch-10 (deep-review C6): inline array + multi-line YAML list 양쪽 처리.
@@ -44,6 +42,35 @@ function parseFrontmatterModel(frontmatter) {
   return m[1];
 }
 
+function mapAgentCapability(tool) {
+  if (['Read', 'Grep', 'Glob'].includes(tool)) return 'workspace read/search';
+  if (['Write', 'Edit', 'MultiEdit'].includes(tool)) return 'apply_patch';
+  if (tool === 'Bash') return 'exec_command';
+  if (['WebFetch', 'WebSearch'].includes(tool)) return 'current web/official-doc lookup when available';
+  if (tool.startsWith('mcp__')) return 'optional MCP official-doc lookup when available';
+  return tool;
+}
+
+function mapAgentCapabilities(tools) {
+  const caps = [];
+  for (const tool of tools || []) {
+    const capability = mapAgentCapability(tool);
+    if (!caps.includes(capability)) caps.push(capability);
+  }
+  return caps;
+}
+
+function transformAgentFrontmatter(frontmatter, tools) {
+  if (!tools) return frontmatter;
+  const caps = mapAgentCapabilities(tools)
+    .map(cap => cap.replace('workspace read/search', 'workspace-read/search'));
+  const block = `codex-capabilities:\n${caps.map(cap => `  - ${cap}`).join('\n')}\n`;
+
+  let out = frontmatter.replace(/^tools\s*:\s*\[[^\]]+\]\n?/m, block);
+  out = out.replace(/^tools\s*:\s*\n(?:\s+-\s+\S.+\n?)+/m, block);
+  return out;
+}
+
 const MODEL_DEMOTE_NOTE = `\n> **Note (B-α scope, semantic loss)**: \`model\` frontmatter is information-only. Codex \`spawn_agent\` does not support per-call model override — all workers use the Codex default model. \`model_routing\` field is preserved for future v0.2+ support but does not change runtime behavior.\n`;
 
 export function transformAgentFile(src) {
@@ -59,7 +86,7 @@ export function transformAgentFile(src) {
   if (model && !outBody.includes('Codex spawn_agent does not support per-call model override') && !outBody.includes('information-only')) {
     outBody = MODEL_DEMOTE_NOTE + outBody;
   }
-  return frontmatter + outBody;
+  return transformAgentFrontmatter(frontmatter, tools) + outBody;
 }
 
 export function generateOpenaiYaml(agentNames) {

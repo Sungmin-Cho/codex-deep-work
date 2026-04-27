@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Grep, Glob, Bash
+codex-capabilities: workspace-read/search, exec_command
 description: "코드 메트릭, 복잡도, 의존성 분석 기반 인사이트 리포트. 독립 실행 또는 deep-work Insight Quality Gate로 사용."
 argument-hint: "target file or directory (optional)"
 ---

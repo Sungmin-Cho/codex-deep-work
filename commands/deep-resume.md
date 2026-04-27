@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill, Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, update_plan
+codex-capabilities: skill invocation, workspace-read/search, apply_patch, exec_command, spawn_agent, numbered-choice prompt, update_plan
 description: "Resume an active deep work session — restores context and continues from where you left off"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ You are resuming an active **Deep Work** session — restoring context from prev
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure. Do NOT mix languages within a single message.
+Detect the user's language from their messages. **Output ALL user-facing messages in the detected language.** The display templates below use Korean as the reference format — translate naturally to the user's language while preserving emoji, formatting, and structure. Do NOT mix languages within a single message.
 
 ## Instructions
 
@@ -54,7 +54,7 @@ Read the registry (`.codex/deep-work-sessions.json`). Filter to sessions where `
 - Proceed to Step 1.5
 
 **If 2+ active sessions in registry:**
-- Present selection UI using AskUserQuestion:
+- Present selection using numbered options:
 
 ```
 재개할 세션을 선택하세요:
@@ -75,7 +75,7 @@ From the resolved state file, extract `current_phase`, `work_dir`, `task_descrip
 
 - `execution_override: inline | delegate | null` (v6.4.0 — sets decide_execution_mode override for inline escape hatches)
 - `active_cluster_takeover: "<cluster_id>" | null` (v6.4.0 — debug takeover 중 세션 중단 시, resume 하면 해당 cluster를 inline으로 이어 실행)
-- `delegation_snapshot: "<git hash>" | null` (v6.4.0 C-1.1 — delegate 진입 직전 capture된 commit hash. verify-receipt pass 시 null로 clear. resume 시 non-null이면 "verify-receipt fail 후 interrupt" 신호로 해석되어 Rollback Protocol AskUserQuestion을 재표시한다.)
+- `delegation_snapshot: "<git hash>" | null` (v6.4.0 C-1.1 — delegate 진입 직전 capture된 commit hash. verify-receipt pass 시 null로 clear. resume 시 non-null이면 "verify-receipt fail 후 interrupt" 신호로 해석되어 Rollback Protocol 번호형 사용자 확인을 재표시한다.)
 
 Set `$WORK_DIR` to the value of `work_dir` (used in all subsequent steps).
 

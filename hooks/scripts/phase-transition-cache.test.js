@@ -33,7 +33,7 @@ describe('phase-transition.sh stdin-cache fallback (v6.2.4 — C-1)', () => {
     fs.writeFileSync(path.join(tmpDir, '.codex', 'deep-work-current-session'), sid);
   }
 
-  it('reads stdin cache when CLAUDE_TOOL_USE_INPUT is unset (Claude Code prod reality)', () => {
+  it('reads stdin cache when legacy env alias is unset (Codex hook reality)', () => {
     const sid = 's-cache1';
     const stateFile = writeStateFile(sid, {
       current_phase: 'plan',

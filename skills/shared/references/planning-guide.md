@@ -72,7 +72,7 @@ The planning phase supports iterative refinement:
 
 3. **Re-running**: User runs `/deep-plan` again to incorporate feedback
 
-### How Claude Processes Feedback
+### How Codex Processes Feedback
 
 1. Read existing `plan.md` looking for user annotations
 2. Incorporate all feedback into the updated plan

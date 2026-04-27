@@ -1,5 +1,5 @@
 ---
-allowed-tools: Read, Bash, AskUserQuestion
+codex-capabilities: workspace-read/search, exec_command, numbered-choice prompt
 description: "Clean up stale deep-work worktrees — scan and delete old worktrees"
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
@@ -13,7 +13,7 @@ Scan for stale deep-work worktrees and offer cleanup options.
 
 ## Language
 
-Detect the user's language from their messages or the Claude Code `language` setting. Output ALL user-facing messages in the detected language.
+Detect the user's language from their messages. Output ALL user-facing messages in the detected language.
 
 ## Instructions
 
@@ -67,7 +67,7 @@ Stop here.
 
 ### 4. Offer cleanup
 
-Use AskUserQuestion:
+Ask the user with numbered options:
 
 ```
 stale worktree를 정리할까요?

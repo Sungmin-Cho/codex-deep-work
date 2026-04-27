@@ -24,7 +24,7 @@ $deep-work:deep-work-orchestrator "작업 설명"
 6단계 auto-flow 실행: Brainstorm → Research → Plan → Implement → Test → Integrate.
 
 Codex는 플러그인 스킬을 `$plugin:skill` 문법으로 호출합니다. 마이그레이션된
-`commands/` 파일에는 `/deep-work` 같은 Claude Code slash-command 이름이 내부
+`commands/` 파일에는 `/deep-work` 같은 legacy slash-command label이 내부
 command spec 라벨로 남아 있지만, Codex의 주 호출 표면은 아닙니다.
 
 ## 요구사항

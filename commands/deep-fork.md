@@ -49,7 +49,7 @@ TARGET_SESSION=$(echo "$ARGS" | tr -s ' ' | xargs)
 **검증 항목:**
 - 상태 파일이 존재하는지
 - `current_phase`가 `idle`이 아닌지 (idle이면: "완료된 세션은 fork할 수 없습니다.")
-- `fork_generation`이 3 미만인지 (3 이상이면: "이미 3세대 fork입니다. 복잡도가 높아질 수 있습니다. 계속하시겠습니까?" — AskUserQuestion으로 확인)
+- `fork_generation`이 3 미만인지 (3 이상이면: "이미 3세대 fork입니다. 복잡도가 높아질 수 있습니다. 계속하시겠습니까?" — 번호형 사용자 확인으로 확인)
 
 **Stale 부모 세션 검증:**
 
@@ -73,7 +73,7 @@ fi
 
 ### Step 3: 재시작 Phase 결정
 
-`--from-phase`가 지정되지 않았으면 AskUserQuestion으로 선택:
+`--from-phase`가 지정되지 않았으면 번호형 사용자 확인으로 선택:
 
 현재 phase 이하의 phase만 선택 가능하다. Phase 순서: brainstorm < research < plan < implement.
 
@@ -102,7 +102,7 @@ IS_GIT=$(git rev-parse --git-dir 2>/dev/null && echo "true" || echo "false")
 DIRTY_STATUS=$(git status --porcelain 2>/dev/null)
 ```
 
-dirty가 아니면 바로 진행. dirty이면 AskUserQuestion:
+dirty가 아니면 바로 진행. dirty이면 번호형 사용자 확인:
 - "커밋 후 fork" — `git add -A && git commit -m "deep-work: pre-fork snapshot"`
 - "현재 상태로 fork" — `git stash push --include-untracked -m "deep-work: fork ${NEW_SESSION_ID}"`로 캡처. Worktree 생성 후 새 worktree에서 `git stash pop`으로 적용. fork-snapshot.yaml에 `parent_dirty: true`, `dirty_resolution: stash-apply` 기록. stash pop 실패 시 fork를 차단하고 에러 메시지 출력.
 - "취소" — fork 중단

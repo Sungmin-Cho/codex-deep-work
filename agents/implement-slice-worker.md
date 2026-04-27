@@ -16,18 +16,15 @@ description: |
   </example>
 model: inherit
 color: magenta
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Write
-  - Edit
-  - Bash
+codex-capabilities:
+  - workspace-read/search
+  - apply_patch
+  - exec_command
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
 
 > **Note (B-α scope, semantic loss)**: `model` frontmatter is information-only. Codex `spawn_agent` does not support per-call model override — all workers use the Codex default model. `model_routing` field is preserved for future v0.2+ support but does not change runtime behavior.
-> **Tool whitelist (B-α natural-language guidance only — Codex does not enforce per-agent tools)**: You may only use Read, Grep, Glob, Write, Edit, Bash. Do not run MultiEdit, WebFetch, WebSearch.
+> **Codex capability guidance (B-α natural-language only)**: Use workspace read/search, `apply_patch`, and `exec_command` as needed for the assigned slice. Keep all writes inside the declared slice scope and record evidence in receipts.
 
 # Role
 Execute assigned slice cluster(s) with strict TDD, write code, run sensors,
@@ -63,10 +60,7 @@ with the exact shape below. Do NOT skip this step — the parent's verify-receip
 gate will hard-fail if the receipt is missing or incomplete.
 
 ```
-Write(
-  file_path="$WORK_DIR/receipts/SLICE-NNN.json",
-  content=<JSON string shown below>
-)
+write `$WORK_DIR/receipts/SLICE-NNN.json` with the JSON string shown below
 ```
 
 Required JSON structure (all fields mandatory except where noted):

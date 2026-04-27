@@ -65,8 +65,8 @@ description: |
 
 **v5.5 신규 기능:**
 - **Research Cross-Model Review**: research 단계에도 codex/gemini 크로스 리뷰 적용
-- **Claude 자체 재검토**: plan 작성 직후 자동 품질 점검 (placeholder, 일관성, 누락)
-- **종합 판단 프로토콜**: cross-review 후 Claude 판단 + 사용자 일괄 확인 (개별 conflict 질문 대체)
+- **Codex 자체 재검토**: plan 작성 직후 자동 품질 점검 (placeholder, 일관성, 누락)
+- **종합 판단 프로토콜**: cross-review 후 Codex 판단 + 사용자 일괄 확인 (개별 conflict 질문 대체)
 - **Structural Review 강화**: auto-fix 기준 score < 5 → score < 7, 스냅샷 기반 rollback
 - **Degraded Mode**: cross-model 리뷰어 실패 시 명시적 상태 표시 + graceful fallback
 - **State 스키마 마이그레이션**: 신규 필드 자동 초기화, resume 시 문서-판단 시각 검증
@@ -97,7 +97,7 @@ matching skill exists under `skills/`.
 - TDD Enforcement (state machine: PENDING → RED → GREEN → REFACTOR)
 - Slice-based Execution with Receipt Collection
 - Profile/Preset System (zero-question restart)
-- Phase Exit Gates (v6.3.1): user-confirmed transitions between phases via AskUserQuestion — "진행 / 재실행 / 일시정지" per phase. current_phase 전환은 Orchestrator Exit Gate "진행" 선택 시에만 발생. Phase 5 Integrate는 제외 (interactive loop 자체가 게이트 역할).
+- Phase Exit Gates (v6.3.1): user-confirmed transitions between phases via numbered-choice prompt — "진행 / 재실행 / 일시정지" per phase. current_phase 전환은 Orchestrator Exit Gate "진행" 선택 시에만 발생. Phase 5 Integrate는 제외 (interactive loop 자체가 게이트 역할).
 
 ## Why This Workflow Exists
 
@@ -149,7 +149,7 @@ The Deep Work workflow prevents these by **strictly separating brainstorming, an
 - **Team mode**: 3 specialist agents (arch-analyst, pattern-analyst, risk-analyst) analyze in parallel with progress notifications
 - **Structural Review 강화**: score < 7 auto-fix, 스냅샷 기반 rollback
 - **Cross-Model Review**: codex/gemini가 research.md를 독립 평가 (plan과 동일 패턴)
-- **종합 판단**: Claude가 모든 리뷰 결과를 분석, 사용자 일괄 확인 후 수정
+- **종합 판단**: 메인 Codex 세션이 모든 리뷰 결과를 분석, 사용자 일괄 확인 후 수정
 
 For detailed guidance, see [Research Guide](../shared/references/research-guide.md) or [Zero-Base Guide](../shared/references/zero-base-guide.md).
 
@@ -177,9 +177,9 @@ For detailed guidance, see [Research Guide](../shared/references/research-guide.
 - **Version history**: Previous plans backed up as `plan.v1.md`, `plan.v2.md` with change logs
 - **Mode re-evaluation**: Suggests Team↔Solo switching based on plan complexity
 - **Exit Gate to Implement (v6.3.1)**: 문서 최종 승인 후 Orchestrator Phase Exit Gate가 "진행 / 재실행 / 일시정지"를 묻는다. "진행" 선택 시 Implement phase 자동 호출 (수동 `$deep-work:deep-implement` 불필요).
-- **Claude 자체 재검토**: plan 작성 직후 placeholder/일관성/누락 자동 점검 및 수정
+- **Codex 자체 재검토**: plan 작성 직후 placeholder/일관성/누락 자동 점검 및 수정
 - **Structural Review 강화**: score < 7 auto-fix, 스냅샷 기반 rollback
-- **종합 판단**: cross-review 후 Claude 판단 + 사용자 일괄 확인 (개별 conflict 질문 대체)
+- **종합 판단**: cross-review 후 Codex 판단 + 사용자 일괄 확인 (개별 conflict 질문 대체)
 - **Team research 교차 검증** (v5.5.1): team_mode: team일 때 부분 리서치 파일(research-architecture/patterns/dependencies.md)을 보조 참조로 로드하여 합성 누락 세부 사항 교차 확인
 
 **Note**: Plan phase does not use Team mode — planning requires a single coherent document produced by one agent.
@@ -197,7 +197,7 @@ For detailed guidance, see [Planning Guide](../shared/references/planning-guide.
 - **Exit Gate to Test phase (v6.3.1)**: 모든 slice 완료 시 Orchestrator가 Phase Exit Gate를 표시. "진행" 선택 시 Test phase 호출. Implement skill 자체는 `implement_completed_at`만 기록하고 current_phase 전환은 Orchestrator가 담당.
 - **Computational sensors**: After each slice reaches GREEN, computational sensors (linter, type checker) run automatically. Failures trigger a self-correction loop (SENSOR_FIX state) where the AI attempts to fix sensor errors before moving to the next slice. Results are stored in receipt `sensor_results` fields.
 - **Slice Review**: After sensors pass, independent 2-stage review per slice — spec compliance (required) and code quality (advisory). Issues caught immediately, not deferred to Phase 4.
-- **Pre-flight Check**: Before each slice's TDD cycle, verify prerequisites (files exist, commands work). Problems surface immediately via AskUserQuestion.
+- **Pre-flight Check**: Before each slice's TDD cycle, verify prerequisites (files exist, commands work). Problems surface immediately via numbered-choice prompt.
 - **Status Reporting**: Each slice records `slice_confidence` (done/done_with_concerns) and specific concerns in the receipt.
 - **Red Flags**: Rationalization prevention tables in implement and test phases. Complements hook-based hard gates with soft behavioral guidance.
 - **Phase Review Gate**: Phase 완료 시 셀프 리뷰 + 외부 리뷰 자동 실행, 사용자 확인 후 전환
@@ -377,4 +377,4 @@ Use built-in plan mode for quick task decomposition, Deep Work for complex subta
 
 ## Internationalization
 
-All commands auto-detect the user's language and output in that language. Korean is the reference format; Claude translates naturally while preserving structure.
+All commands auto-detect the user's language and output in that language. Korean is the reference format; Codex translates naturally while preserving structure.

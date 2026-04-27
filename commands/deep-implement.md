@@ -1,5 +1,5 @@
 ---
-allowed-tools: Skill, Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion, update_plan
+codex-capabilities: skill invocation, workspace-read/search, apply_patch, exec_command, spawn_agent, numbered-choice prompt, update_plan
 ---
 <!-- migrated-by: codex-migrate v0.1 -->
 

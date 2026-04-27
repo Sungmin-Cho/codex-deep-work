@@ -43,6 +43,18 @@ const PARALLEL_TASK_REPLACEMENT = 'Spawn N worker agents in sequence (multi_agen
 function applyToolMapping(src) {
   let out = src;
 
+  // 0. Codex runtime surface cleanup: remove Claude-specific root/env/tool API
+  // wording that would be misleading if copied into migrated skills.
+  out = out.replace(/\bCLAUDE_PLUGIN_ROOT\b/g, 'DEEP_WORK_PLUGIN_ROOT');
+  out = out.replace(/\bCLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\b/g, 'Codex multi_agent feature');
+  out = out.replace(/Use the Read tool/g, 'Use workspace read/search');
+  out = out.replace(/call Write to persist/g, 'use apply_patch to persist');
+  out = out.replace(/\bAgent\s*\(/g, 'spawn_agent request (');
+  out = out.replace(/\bsubagent_type\s*=/g, 'agent_prompt_contract=');
+  out = out.replace(/\bAgent tool\b/g, 'Codex spawn_agent');
+  out = out.replace(/Claude 에이전트/g, 'Codex worker agent');
+  out = out.replace(/Claude Code의 Agent tool/g, 'Codex spawn_agent');
+
   // 1. rename: TaskCreate/Update/List/Get/TodoWrite
   // call form: Token( ... )
   for (const [tok] of Object.entries(TOOL_MAPPING.rename)) {
@@ -92,6 +104,7 @@ function applyToolMapping(src) {
   // 5. AskUserQuestion 본문 narrative
   out = out.replace(/Use the \*?\*?AskUserQuestion\*?\*? tool[^.]*/g,
     'Ask the user a numbered-options question (1) ... 2) ... — 자연어 prompt)');
+  out = out.replace(/\bAskUserQuestion\b/g, 'numbered-choice prompt');
 
   return out;
 }
