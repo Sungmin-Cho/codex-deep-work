@@ -1,6 +1,6 @@
 # codex-deep-work
 
-Evidence-Driven Development Protocol — Codex CLI plugin port of [claude-deep-work v6.4.1](https://github.com/Sungmin-Cho/claude-deep-work).
+Evidence-Driven Development Protocol — Codex CLI plugin port of [claude-deep-work v6.4.2](https://github.com/Sungmin-Cho/claude-deep-work).
 
 **Scope:** B-α — parallel `spawn_agent` dispatch only. See Semantic Losses in `AGENTS.md`.
 
@@ -11,7 +11,7 @@ codex plugin marketplace add https://github.com/Sungmin-Cho/codex-deep-suite
 # marketplace add 시 자동 install (cache fetch). 별도 install 명령 부재.
 ```
 
-> **현재 상태 (2026-04-26)**: Phase A + B + C 완료 (부록 F 11/11), Phase D 진입 + 본 deep-review 응답 (`2026-04-26-152137`) 7 critical fix 흡수. 다음: Phase E (release 준비). 위 명령은 release 후 동작.
+> **Current state (2026-05-02)**: v6.4.2 session-init recommender/profile-v3 migration has been ported to Codex B-alpha. Next release prep still uses the migration gate below.
 
 > **Pre-release 검증**: `bash scripts/migrate-from-claude/verify-migration.sh` 로 마이그레이션 게이트 확인. Phase B/C 진행 상황은 `CHANGELOG.md` 참조.
 
@@ -22,6 +22,9 @@ $deep-work:deep-work-orchestrator "your task description"
 ```
 
 Drives 6-phase auto-flow: Brainstorm → Research → Plan → Implement → Test → Integrate.
+At session start, v6.4.2 profile defaults are migrated idempotently to v3 and
+the `session-recommender` agent can recommend `team_mode`, `start_phase`,
+`tdd_mode`, `git`, and `model_routing` before the per-item numbered prompts.
 
 Codex invokes plugin skills with `$plugin:skill` syntax. The migrated
 `commands/` files still use legacy slash-command labels such as

@@ -2,6 +2,12 @@
 
 ## Unreleased — Phase C 완료 + Phase D 진입 (2026-04-26)
 
+### v6.4.2 parity update (2026-05-02)
+
+- upstream session-init recommender 흐름을 Codex로 포팅: `session-recommender` agent metadata, `--no-ask`, `--recommender=MODEL`, `--no-recommender`, 항목별 추천 prompt.
+- profile v2→v3 멱등 migration/runtime helper를 Codex runtime surface에 추가: `parse-deep-work-flags`, `migrate-profile-v2-to-v3`, `load-v3-profile`, `recommender-*`, `format-ask-options`, `detect-capability`.
+- v6.4.2 command/skill spec 변환 시 Claude-only allowed-tools와 inline tool-call form이 Codex 문서에 남지 않도록 migration transform을 보강.
+
 ### Phase E pre-flight (2026-04-26)
 
 - `file-tracker.sh`, `phase-guard.sh`, `session-end.sh` 의 active hook runtime 에서 process substitution (`/dev/fd`) 의존을 제거. stderr 는 temp file 로 capture 한 뒤 `.codex/` state API 로 append.
@@ -63,7 +69,7 @@
 
 ## 0.1.0 — TBD (Phase E 릴리스)
 
-claude-deep-work v6.4.1 의 Codex CLI 포팅 첫 릴리스 예정 (B-α 스코프).
+claude-deep-work v6.4.2 의 Codex CLI 포팅 첫 릴리스 예정 (B-α 스코프).
 
 ### 주요 기능
 

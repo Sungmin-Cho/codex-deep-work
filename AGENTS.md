@@ -1,6 +1,6 @@
 # AGENTS.md - codex-deep-work
 
-This repository contains the Codex CLI port of **claude-deep-work v6.4.1**.
+This repository contains the Codex CLI port of **claude-deep-work v6.4.2**.
 It packages the Evidence-Driven Development Protocol as a Codex plugin with
 commands, skills, hooks, sensors, health checks, and migration tooling.
 
@@ -13,6 +13,8 @@ commands, skills, hooks, sensors, health checks, and migration tooling.
 - Main Codex entrypoint: `$deep-work:deep-work-orchestrator "task description"`
 - Migrated command spec: `commands/deep-work.md` (`/deep-work` in legacy slash-command wording)
 - Test command: `npm test`
+- Current upstream parity: v6.4.2 session-init recommender, profile v3 migration,
+  and Phase 5 Integrate recommendation loop adapted to Codex B-alpha primitives.
 - Current migration scope: **B-alpha**. The port preserves the user-facing
   workflow where Codex has equivalent primitives, and documents weaker areas
   where Codex does not yet expose the same enforcement surface as the source plugin.
@@ -27,6 +29,7 @@ commands, skills, hooks, sensors, health checks, and migration tooling.
 6. Migration Tooling
 7. Verification Checklist
 8. Maintenance Rules
+9. Release Handoff
 
 ## Runtime Requirements
 
@@ -146,10 +149,13 @@ Before finishing code changes:
   receipt/state side effects.
 - If marketplace metadata changed, verify `codex-deep-suite` pins the intended
   Git SHA.
+- When preparing a release PR, also check whether `codex-deep-suite` needs a
+  follow-up marketplace pin or docs update. Do not treat the plugin PR as fully
+  operationally complete until the suite handoff path is explicit.
 
 Current tracked test baseline:
 
-- `tests/.baseline-count = 740`
+- `tests/.baseline-count = 749`
 - `tests/.expected-fail-count = 0`
 
 ## Maintenance Rules
@@ -165,3 +171,17 @@ Current tracked test baseline:
   `package.json`, README, and CHANGELOG consistent.
 - The suite marketplace should pin released plugin SHAs with `source: "url"`
   and `sha`.
+- After a deep-work PR is merged, immediately update `codex-deep-suite`:
+  1. Pull `codex-deep-work` `main` and record the merge commit SHA.
+  2. Update `codex-deep-suite/.agents/plugins/marketplace.json` for `deep-work`.
+  3. Update suite README/guide docs when user-facing workflow changed.
+  4. Verify suite JSON parsing and `git diff --check`.
+  5. Open a suite PR. Keep plugin source out of the suite repository.
+
+## Release Handoff
+
+For this v6.4.2 recommender/profile parity line, the suite handoff is required:
+the marketplace pin cannot be updated until the `codex-deep-work` PR is merged,
+but the suite docs should already describe the current Codex UX and the reduced
+plugin set accurately. A fresh session should continue with `codex-deep-suite`
+immediately after merge instead of rediscovering this dependency.

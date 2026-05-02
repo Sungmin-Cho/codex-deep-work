@@ -24,6 +24,8 @@ function mapCommandCapability(tool) {
   if (tool === 'Agent') return 'spawn_agent';
   if (tool === 'Skill') return 'skill invocation';
   if (tool === 'AskUserQuestion') return 'numbered-choice prompt';
+  if (['TeamCreate', 'TeamDelete', 'TeamGet', 'SendMessage'].includes(tool)) return 'main-session worker coordination';
+  if (['TaskCreate', 'TaskUpdate', 'TaskList', 'TaskGet', 'TodoWrite'].includes(tool)) return 'update_plan';
   return tool;
 }
 
