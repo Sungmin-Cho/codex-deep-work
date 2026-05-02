@@ -323,9 +323,9 @@ Previous sessions are preserved when starting new ones. The migrated `deep-statu
 
 ## Profile System
 
-First run saves setup answers to `.codex/deep-work-profile.yaml` as `default` preset. Subsequent runs skip all questions. Multi-preset support: `dev`, `quick`, `review` etc.
+`$deep-work:deep-work-orchestrator` manages `.codex/deep-work-profile.yaml` as a v3 profile. On first use it creates the profile, and on legacy use it migrates v2 profiles before loading defaults. Each session still runs the v6.4.2 five-item ask flow (`team_mode`, `start_phase`, `tdd_mode`, `git`, `model_routing`) with `session-recommender` suggestions unless `--no-ask` or `--no-recommender` is supplied. Multi-preset support remains available through names such as `dev`, `quick`, and `review`.
 
-**Flags**: `--profile=quick`, `--team`, `--zero-base`, `--skip-research`, `--no-branch`, `--setup`
+**Flags**: `--profile=quick`, `--team`, `--zero-base`, `--skip-research`, `--no-branch`, `--setup`, `--no-ask`, `--no-recommender`, `--recommender=MODEL`
 
 ## Session Resume (migrated `deep-resume` spec)
 

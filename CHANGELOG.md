@@ -2,6 +2,12 @@
 
 ## Unreleased — Phase C complete + Phase D 진입 (2026-04-26)
 
+### v6.4.2 parity update (2026-05-02)
+
+- Ported the upstream session-init recommender flow to Codex: `session-recommender` agent metadata, `--no-ask`, `--recommender=MODEL`, `--no-recommender`, and per-item recommendation prompts.
+- Added profile v2→v3 idempotent migration/runtime helpers (`parse-deep-work-flags`, `migrate-profile-v2-to-v3`, `load-v3-profile`, `recommender-*`, `format-ask-options`, `detect-capability`) under the Codex runtime surface.
+- Hardened migration transforms so v6.4.2 command/skill specs no longer leak Claude-only allowed-tools or inline tool-call forms into Codex docs.
+
 ### Phase E pre-flight (2026-04-26)
 
 - Removed active hook runtime dependence on process substitution (`/dev/fd`) in `file-tracker.sh`, `phase-guard.sh`, and `session-end.sh`; stderr is now captured through temp files and appended via the `.codex/` state API.
@@ -63,7 +69,7 @@
 
 ## 0.1.0 — TBD (Phase E release)
 
-First release planned — Codex CLI port of claude-deep-work v6.4.1 (B-α scope).
+First release planned — Codex CLI port of claude-deep-work v6.4.2 (B-α scope).
 
 ### Highlights
 

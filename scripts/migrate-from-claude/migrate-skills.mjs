@@ -46,7 +46,7 @@ function applyToolMapping(src) {
   // 0. Codex runtime surface cleanup: remove Claude-specific root/env/tool API
   // wording that would be misleading if copied into migrated skills.
   out = out.replace(/\bCLAUDE_PLUGIN_ROOT\b/g, 'DEEP_WORK_PLUGIN_ROOT');
-  out = out.replace(/\bCLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\b/g, 'Codex multi_agent feature');
+  out = out.replace(/\bCLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS\b/g, 'CODEX_MULTI_AGENT_ENABLED');
   out = out.replace(/Use the Read tool/g, 'Use workspace read/search');
   out = out.replace(/call Write to persist/g, 'use apply_patch to persist');
   out = out.replace(/\bAgent\s*\(/g, 'spawn_agent request (');
@@ -83,6 +83,12 @@ function applyToolMapping(src) {
     'Spawn a worker agent (multi_agent) with agents/$1.md as message');
   out = out.replace(/\bsubagent_type\b/g, 'agent_prompt_contract');
 
+  // 2.5. Inline tool-call examples in markdown specs. These are not executable in
+  // Codex and should read as natural-language instructions after migration.
+  out = out.replace(/\bBash\(\{\s*command:\s*([\s\S]*?)\s*\}\)/g,
+    'run shell command $1');
+  out = out.replace(/\bRead\(\s*["']([^"']+)["']\s*\)/g, 'read `$1`');
+
   // 3. natural_language_only: Skill / AskUserQuestion / TeamCreate / TeamDelete / TeamGet / SendMessage
   // Skill(...) 의 첫 quoted argument 캡쳐. args= 뒤따르는 케이스도 매칭. 본문 안 백틱 코드는 보존 의도지만,
   // verify check 3 의 grep -vE 가 marker 외 잔존 차단.
@@ -109,6 +115,10 @@ function applyToolMapping(src) {
   out = out.replace(
     /번호형 사용자 확인:\n\n- header: "([^"]+)"\n(?:- multiSelect: false\n)?- options:\n/g,
     '번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: $1\n'
+  );
+  out = out.replace(
+    /numbered-choice prompt:\n\n- header: "([^"]+)"\n(?:- multiSelect: false\n)?- options:\n/g,
+    'numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: $1\n'
   );
 
   return out;

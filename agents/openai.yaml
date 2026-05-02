@@ -12,3 +12,6 @@ agents:
   - name: research-zerobase-worker
     display_name: "Research Zerobase Worker"
     default_prompt: "Execute the task per agents/research-zerobase-worker.md exactly. Output only the structured response specified there."
+  - name: session-recommender
+    display_name: "Session Recommender"
+    default_prompt: "Execute the task per agents/session-recommender.md exactly. Output only the structured response specified there."

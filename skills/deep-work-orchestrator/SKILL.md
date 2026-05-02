@@ -20,7 +20,7 @@ If absent:
 
 사용자 입력: **$ARGUMENTS**
 
-> `--resume-from=<phase>` 가 지정된 경우: Step 1의 **interactive/setup 대화(프로필 질문, 작업 모드 선택, 알림 설정 등)만 건너뛴다**. `SESSION_ID`는 `--session`에서 결정되고, 기존 state file을 재사용하며 새 세션 파일을 쓰지 않는다.
+> `--resume-from=<phase>` 가 지정된 경우: Step 1의 **interactive/setup 대화(프로필 질문, 작업 모드 선택 등)만 건너뛴다**. `SESSION_ID`는 `--session`에서 결정되고, 기존 state file을 재사용하며 새 세션 파일을 쓰지 않는다.
 >
 > **반드시 수행 (NO2 + NP1 fix)**:
 > 1. Step 1-2 state file 로드: `.codex/deep-work.{SESSION_ID}.md`에서 `work_dir`, `task_description`, `worktree_enabled`, `worktree_path`, `team_mode`, `cross_model_enabled`, `tdd_mode`, `iteration_count`, `skipped_phases`, `research_approved`, `research_approved_hash`, `plan_approved`, `plan_approved_hash`, `current_phase` 등 모든 상태 변수 로드.
@@ -38,7 +38,13 @@ State load 직후, Step 3 dispatch 전에 migration helper 를 호출하여 `mod
 실행:
 ```bash
 if [ -f "$STATE_FILE" ]; then
-  result=$(node "${DEEP_WORK_PLUGIN_ROOT}/scripts/migrate-model-routing.js" "$STATE_FILE" 2>&1 || true)
+  migrate_state_stderr=$(mktemp)
+  result=$(node "${DEEP_WORK_PLUGIN_ROOT}/scripts/migrate-model-routing.js" "$STATE_FILE" 2>"$migrate_state_stderr")
+  migrate_state_rc=$?
+  if [ "$migrate_state_rc" -ne 0 ]; then
+    cat "$migrate_state_stderr" >&2
+    # numbered-choice prompt: 수동 확인 / 계속 중단
+  fi
 fi
 ```
 
@@ -61,7 +67,7 @@ const { replaced, warnings } = migrateStateFile(stateFile);
 
 SessionStart hook의 update-check.sh 출력 처리:
 - `JUST_UPGRADED` → 업그레이드 완료 메시지, 계속 진행
-- `UPGRADE_AVAILABLE` → 프로필 `auto_update` 확인 → 자동 또는 번호형 사용자 확인으로 업그레이드 제안
+- `UPGRADE_AVAILABLE` → numbered-choice prompt으로 업그레이드 제안 (업그레이드 / 건너뜀)
 
 ## 1-2. 기존 세션 확인 (Multi-Session)
 
@@ -69,7 +75,7 @@ SessionStart hook의 update-check.sh 출력 처리:
 `.codex/deep-work.local.md` 존재 + active → `migrate_legacy_state` 실행
 
 ### Stale 세션 감지
-`detect_stale_sessions` → 각 stale 세션에 대해 번호형 사용자 확인:
+`detect_stale_sessions` → 각 stale 세션에 대해 numbered-choice prompt:
 1. 이어서 진행 → state 읽기 + worktree 확인 + artifact 복원 → **Step 3으로 jump**
 2. 종료 처리 → idle 설정, registry 해제
 3. 무시 → 계속
@@ -83,51 +89,250 @@ SESSION_ID=$(generate_session_id)
 write_session_pointer "$SESSION_ID"
 ```
 
-## 1-3. 프로필 로드 + 플래그 파싱
+## 1-3. 프로필 로드 + 플래그 파싱 (v6.4.2)
 
-### $ARGUMENTS에서 플래그 추출
+### 플래그 표
 
 | 플래그 | 효과 |
 |--------|------|
 | `--setup` | 프로필 재설정 강제 |
-| `--team` | team_mode → "team" |
+| `--team` | team_mode → "team" (해당 항목 ask 우회) |
 | `--zero-base` | project_type → "zero-base" |
-| `--skip-research` | start_phase → "plan" |
+| `--skip-research` | start_phase → "plan" (해당 항목 ask 우회) |
 | `--skip-brainstorm` | brainstorm 건너뜀 |
-| `--tdd=MODE` | strict / relaxed / coaching / spike |
+| `--tdd=MODE` | strict / relaxed / coaching / spike (해당 항목 ask 우회) |
 | `--skip-review` | review_state → "skipped" |
-| `--no-branch` | git_branch → false |
+| `--no-branch` | git → "current-branch" (해당 항목 ask 우회) |
 | `--skip-to-implement` | Plan까지 전부 건너뜀, 인라인 slice |
 | `--skip-integrate` | Phase 5 Integrate 건너뜀 (v6.3.0) |
-| `--profile=X` | 프리셋 X 직접 선택 |
+| `--profile=X` | 프리셋 X 직접 선택 (ask 단계는 진행, v6.4.2 의미 유지) |
+| `--no-ask` | 신규 (v6.4.2): ask 단계 모두 skip + 추천 skip (가장 빠른 경로) |
+| `--recommender=MODEL` | 신규 (v6.4.2): 추천 모델 preference. allowlist `^(haiku\|sonnet\|opus)$`, 그 외 거부 + sonnet fallback + 1회 경고. Codex B-alpha에서는 per-call model override가 정보용이며 worker는 active Codex model을 inherit |
+| `--no-recommender` | 신규 (v6.4.2): 추천 sub-agent skip (defaults 값으로 ask 진입) |
+| `--exec=<inline\|delegate>` | (v6.4.0) Implement 단계 실행 방식 override. parser → state.execution_override → deep-implement §1.5에서 read |
 | `--resume-from=<phase>` | Step 1 초기화 건너뛰고 기존 state로 `<phase>`(research/plan/implement/test) 해당 Step 3-N부터 재개. `deep-resume.md`가 사용. |
 
-플래그 제거 후 나머지 = task description. 비어있으면 numbered-choice prompt.
+### §1-3-1. 플래그 파서 호출
 
-### 프로필 로드
+orchestrator 본문에서 직접 실행 (process scope 일관 — R3-B):
 
-`.codex/deep-work-profile.yaml` 존재 시:
-1. version 확인 (v1 → v2 자동 마이그레이션)
-2. 프리셋 선택: `--profile=X` / 단일 프리셋 → 자동선택 / 복수 → numbered-choice prompt
-3. 프리셋 필드 → 내부 변수 매핑 (team_mode, project_type, start_phase, tdd_mode, model_routing, notifications, cross_model_preference)
-4. 플래그 override 적용 (--team, --zero-base 등이 프리셋보다 우선)
-5. 적용된 설정 표시 + "이대로 진행 / 이번 세션만 변경" 선택
+````bash
+# C1 fix (R5): $ARGUMENTS를 double-quoted single arg로 전달 — shell metacharacters가
+# parser allowlist 적용 전에 shell에 의해 평가되지 않음.
+# parser CLI entrypoint는 단일 공백 포함 인자를 split-before-allowlist로 처리.
+PARSE_OUT=$(node "${DEEP_WORK_PLUGIN_ROOT}/scripts/parse-deep-work-flags.js" -- "$ARGUMENTS" 2>/tmp/dw-parse-err.txt)
+parse_rc=$?
+````
 
-프로필 미존재 시: 아래 대화형 설정 진행.
+- `parse_rc` 비-zero → `/tmp/dw-parse-err.txt` 내용 표시 + numbered-choice prompt (재입력 / 종료). `2>&1 || true` 패턴 사용 금지 (R3-C).
+- `PARSE_OUT` (JSON) → `TASK_TEXT`, `PARSE_PROFILE`, `FLAGS` 객체 추출. Shell에서는 JSON 객체 접근 표기 금지:
+  ```bash
+  TASK_TEXT=$(printf '%s' "$PARSE_OUT" | node -e 'const p=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(p.task || "")')
+  PARSE_PROFILE=$(printf '%s' "$PARSE_OUT" | node -e 'const p=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(p.profile || "")')
+  PARSE_PROJECT_TYPE=$(printf '%s' "$PARSE_OUT" | node -e 'const p=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(p.zero_base ? "zero-base" : "existing")')
+  ```
+- `TASK_TEXT` 비어 있으면 ask the user with numbered options (1) ... 2) ... — 숫자로 응답).
+
+> `scripts/parse-deep-work-flags.js`는 Task 4에서 구현. 본 task는 호출 step만 박제.
+
+### §1-3-2. 프로필 v2→v3 마이그레이션
+
+파서 결과로 `DEEP_WORK_INITIAL_PRESET`(= `PARSE_PROFILE` 또는 빈 문자열)이 채워진 후 migration 호출 (R3-W1):
+
+````bash
+PROFILE_FILE="$PROJECT_ROOT/.codex/deep-work-profile.yaml"
+migrate_stderr=$(mktemp)
+MIGRATE_OUT=$(DEEP_WORK_INITIAL_PRESET="$PARSE_PROFILE" \
+  DEEP_WORK_PROJECT_TYPE="$PARSE_PROJECT_TYPE" \
+  node "${DEEP_WORK_PLUGIN_ROOT}/scripts/migrate-profile-v2-to-v3.js" "$PROFILE_FILE" 2>"$migrate_stderr")
+migrate_rc=$?
+````
+
+- `migrate_rc` 비-zero → `$migrate_stderr` 내용 표시 + numbered-choice prompt (수동 이전 / 새 v3 강제 생성 / 종료). `2>&1 || true` 패턴 사용 금지 (R3-C).
+- `MIGRATE_OUT` (JSON stdout):
+  - `{ "migrated": true, "reason": "v2-to-v3" }` → 1회 안내:
+    > "프로필을 v3로 마이그레이션했습니다. 알림 설정은 제거되었고, 매 세션마다 5개 항목(team/start/tdd/git/model)에 대해 LLM 추천 + 확인을 거칩니다. ask 항목 변경: `/deep-work --setup`. 빠른 경로: `/deep-work --profile=X --no-ask`."
+
+    이후 migrate warnings 표시:
+    ```bash
+    if echo "$MIGRATE_OUT" | node -e 'const r=JSON.parse(require("fs").readFileSync(0,"utf8")); process.exit(r.warnings && r.warnings.length ? 0 : 1)'; then
+      echo "$MIGRATE_OUT" | node -e '
+        const r = JSON.parse(require("fs").readFileSync(0, "utf8"));
+        for (const w of (r.warnings || [])) console.error("[migrate] " + w);
+      '
+    fi
+    ```
+  - `{ "migrated": false, "reason": "already-v3" }` → silent.
+  - `{ "migrated": false, "reason": "not-found-created-v3" }` → 1회 안내:
+    > "신규 프로필 (v3 형식)을 작성했습니다: `$PROFILE_FILE`. 매 세션마다 5개 항목 ask + 추천이 진행됩니다. 빠른 경로: `--profile=solo-strict --no-ask`."
+
+### §1-3-3. v3 프로필 로더 호출
+
+````bash
+# W3 fix (R5): --profile=X가 loader에 전달되도록 DEEP_WORK_INITIAL_PRESET export
+# (§1-3-2의 migrate-profile 호출과 동일한 env 전달 패턴으로 parity 확보)
+PROFILE_OUT=$(DEEP_WORK_INITIAL_PRESET="$PARSE_PROFILE" \
+  node "${DEEP_WORK_PLUGIN_ROOT}/scripts/load-v3-profile.js" "$PROFILE_FILE" 2>/tmp/dw-profile-err.txt)
+profile_rc=$?
+````
+
+- `profile_rc` 비-zero → `/tmp/dw-profile-err.txt` 내용 표시 + numbered-choice prompt (재시도 / 종료).
+- `PROFILE_OUT` (JSON stdout) → `PROFILE_DATA` (presets, default_preset, interactive_each_session, defaults) 추출.
+
+> `scripts/load-v3-profile.js`는 Task 3.5에서 구현. 본 task는 호출 step만 박제.
+
+### §1-3-4. 플래그 우선순위 적용
+
+아래 우선순위 순서로 in-memory `current_defaults` 구성 (나중 단계가 앞 단계를 override):
+
+1. `PROFILE_DATA.defaults` (프리셋 기본값)
+2. `--profile=X` 선택 프리셋 defaults (명시 선택 시)
+3. CLI 플래그 (`--team`, `--tdd=MODE`, `--no-branch`, `--skip-research` 등)
+4. `--no-ask` → `interactive_each_session` 전 항목 건너뜀 표시
+
+`current_defaults`는 §1-4 ask 흐름의 입력값. `--no-ask` 지정 시 §1-4 전체 skip.
+
+### §1-3-5. 파싱 경고 표시
+
+`FLAGS.warnings` 배열 비어있지 않으면 각 경고를 1회씩 표시:
+- 알 수 없는 플래그: `"⚠ 알 수 없는 플래그 무시됨: --foo"`
+- `--recommender=` allowlist 위반: `"⚠ --recommender=gpt4 불인식 → sonnet fallback"`
+- 기타 파서 경고: 그대로 표시.
 
 ### --setup 사용 시
-기존 프로필 존재 → 프리셋 관리 UI (편집/새로 만들기)
 
-## 1-4. 대화형 설정 (프로필 미존재 시)
+`FLAGS.setup` = true → 기존 프로필 존재하면 프리셋 관리 UI (편집 / 새로 만들기).
 
-프로필 로드 성공 시 이 단계 전부 건너뜀.
+## 1-4. 항목별 대화형 설정 (v6.4.2)
 
-1. **작업 모드**: Solo / Team → Team 선택 시 Codex `multi_agent` feature 확인
-2. **모델 라우팅**: 기본값(R=sonnet, P=main, I=sonnet, T=haiku) / 커스텀
-3. **알림**: 없음 / 로컬 / 외부 채널 (Slack/Discord/Telegram/Webhook)
-4. **프로젝트 타입**: 기존 코드베이스 / 제로베이스
-5. **시작 단계**: Brainstorm / Research / Plan
-6. **TDD 모드**: strict / coaching / relaxed / spike
+`--no-ask` 또는 `--profile=X --no-ask` 지정 시 §1-4 전체 skip → §1-5로 진행.
+
+### §1-4-1. Assumption auto-adjust 결과 통합
+
+§1-7(Assumption Health Check)이 §1-4 이전에 실행되어 `tdd_mode` 등을 auto-adjust한 결과를 in-memory `current_defaults`에 반영. 이후 recommender 호출의 입력 `current_defaults`가 됨.
+
+(§1-7은 번호 유지, §1-4-1이 §1-7 결과를 consume하는 방식으로 연결 — 섹션 번호 재정렬 회피.)
+
+### §1-4-2. session-recommender sub-agent 호출 (in-memory only)
+
+조건:
+- `--no-recommender` 미지정 + sanitize 후 입력 토큰 ≤ 8k인 경우만 호출
+- 그 외: 추천 없이 ask 진입 (옵션 라벨 = "(자동 추천 실패 — 직접 선택)")
+
+capability 감지:
+
+````bash
+# W2 fix (R5): env-only IS_GIT 의존 제거 — 실 git 명령으로 직접 검출
+IS_GIT=$(git rev-parse --is-inside-work-tree 2>/dev/null || echo "false")
+WORKTREE_SUPPORTED=$(git worktree list >/dev/null 2>&1 && echo "true" || echo "false")
+# Codex port requirement: features.multi_agent=true. Missing runtime evidence
+# must fail closed so team recommendations are not offered accidentally.
+TEAM_ENV=$([ "${CODEX_MULTI_AGENT_ENABLED:-false}" = "true" ] && echo "true" || echo "false")
+
+export IS_GIT WORKTREE_SUPPORTED TEAM_ENV
+CAP=$(node -e '
+  const { detectCapability } = require("'"${DEEP_WORK_PLUGIN_ROOT}"'/scripts/detect-capability.js");
+  const cap = detectCapability({
+    is_git: process.env.IS_GIT === "true",
+    worktree_supported: process.env.WORKTREE_SUPPORTED === "true",
+    team_env_set: process.env.TEAM_ENV === "true"
+  });
+  process.stdout.write(JSON.stringify(cap));
+')
+export CAP_JSON="$CAP"
+WORKSPACE_META=$(node -e '
+  const fs = require("node:fs");
+  const cp = require("node:child_process");
+  const isGit = process.env.IS_GIT === "true";
+  function lines(command) {
+    try {
+      return cp.execSync(command, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      }).split(/\r?\n/).filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+  const topLevelDirs = fs.readdirSync(process.cwd(), { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .filter(name => ![".git", "node_modules", "vendor"].includes(name))
+    .sort()
+    .slice(0, 10);
+  const gitStatus = isGit && lines("git status --porcelain").length > 0 ? "dirty" : "clean";
+  process.stdout.write(JSON.stringify({
+    git_status: gitStatus,
+    recent_commits: isGit ? lines("git log --oneline -5") : [],
+    top_level_dirs: topLevelDirs
+  }));
+')
+export WORKSPACE_META
+````
+
+호출 (`deep-work:session-recommender` prompt contract → default worker fallback):
+
+````javascript
+const { sanitizeInput } = require("${DEEP_WORK_PLUGIN_ROOT}/scripts/recommender-input.js");
+const { parseRecommendation } = require("${DEEP_WORK_PLUGIN_ROOT}/scripts/recommender-parser.js");
+
+const CAPABILITY = JSON.parse(process.env.CAP_JSON);
+const WORKSPACE_META = JSON.parse(process.env.WORKSPACE_META);
+const input = sanitizeInput({
+  task_description: TASK_TEXT,
+  git_status: WORKSPACE_META.git_status,
+  recent_commits: WORKSPACE_META.recent_commits,
+  top_level_dirs: WORKSPACE_META.top_level_dirs,
+  current_defaults: current_defaults,
+  capability: CAPABILITY,
+  ask_items: PROFILE_DATA.interactive_each_session
+});
+
+// Codex B-alpha does not guarantee plugin-named custom agent types at runtime.
+// Main-session action:
+// 1. If spawn_agent is available, dispatch a default worker with
+//    agents/session-recommender.md as the prompt contract plus
+//    JSON.stringify(input). Wait up to 30 seconds.
+//    FLAGS.recommender is an advisory Claude-model preference in B-alpha;
+//    Codex workers inherit the active Codex model unless runtime model routing exists.
+// 2. If dispatch is unavailable, times out, or returns no final text, set
+//    RECOMMENDER_TEXT = "".
+// 3. Parse only after text is available; parser failure is a normal fallback.
+const parsed = RECOMMENDER_TEXT
+  ? parseRecommendation(RECOMMENDER_TEXT, { capability: input.capability })
+  : { ok: false, data: {}, fallback_reason: 'recommender skipped' };
+const REC = parsed.ok ? parsed.data : {};
+````
+
+`parsed.ok=false` 또는 30초 timeout → recommender skip + `(자동 추천 실패 — 직접 선택)` 라벨로 ask 진입.
+
+### §1-4-3. interactive_each_session 항목별 numbered-choice prompt (in-memory only)
+
+`PROFILE_DATA.interactive_each_session` 배열을 순회하며 각 항목별 numbered-choice prompt. CLI 플래그로 이미 override된 항목은 건너뜀.
+
+각 ask 항목별로 옵션 라벨 빌드:
+
+````javascript
+const { formatOptions, capabilityToDisabled } = require("${DEEP_WORK_PLUGIN_ROOT}/scripts/format-ask-options.js");
+const { ENUMS } = require("${DEEP_WORK_PLUGIN_ROOT}/scripts/recommender-parser.js");
+const disabled = capabilityToDisabled(CAPABILITY, item);
+const opts = formatOptions({
+  item,
+  recommendation: REC[item] || null,
+  default_value: current_defaults[item],
+  enum_values: ENUMS[item],
+  disabled_values: disabled
+});
+// ask the user with numbered options (1) ... 2) ... — 숫자로 응답)))
+````
+
+### §1-4-4. 결과 누적
+
+ask 결과는 orchestrator 변수에 누적. **state file 미생성**. §1-9 시점에 한 번에 atomic write.
+
+### §1-4-5. 일시정지 시 재진입
+
+ask 도중 사용자 일시정지 → state file 미생성 상태로 종료. 복귀(`/deep-work` 재호출) 시 §1-1부터 재시작 (recommender도 재호출).
 
 ## 1-5. 작업 디렉토리 생성
 
@@ -157,18 +362,32 @@ Git repository인 경우:
 - Worktree 성공 시: `worktree_enabled: true`, `worktree_path`, `worktree_branch` state에 기록
 - 이후 모든 파일 작업은 worktree 절대 경로 기준
 
-## 1-9. State 파일 + Registry 생성
+## 1-9. State 파일 + Registry 생성 (atomic + 권한 600)
 
 `.codex/deep-work.{SESSION_ID}.md` 생성 (YAML frontmatter):
 - session_id, current_phase, task_description, work_dir
 - team_mode, tdd_mode, model_routing, worktree_*, cross_model_*
 - 각 phase timestamp, test_retry_count, max_test_retries 등
+- **`recommendations: { ... }`** (v6.4.2 신규) — §1-4-2 sub-agent 응답 + §1-4-3 사용자 최종 선택 (옵셔널 필드, phase-guard enforcement에는 영향 없음)
+- `execution_override: {FLAGS.exec_mode | null}` — v6.4.0 호환, deep-implement Section 1.5에서 read
+
+**작성 절차** (atomic + 권한 600):
+
+````bash
+state_tmp="${state_path}.tmp"
+write_yaml_to "$state_tmp"   # state file 내용 작성 (YAML frontmatter)
+chmod 600 "$state_tmp"
+sync_file "$state_tmp"
+mv -f "$state_tmp" "$state_path"   # atomic rename
+````
+
+§1-4-2/§1-4-3의 in-memory 결과는 이 시점에 `recommendations` 필드로 직렬화. phase-guard는 `current_phase`, `*_completed_at`, `*_approved` 필드만 검사하며 `recommendations` 필드는 enforcement에 영향을 미치지 않는다.
 
 Registry 등록: `register_session "$SESSION_ID" ...`
 
 ## 1-10. 프로필 저장 (첫 실행 시)
 
-프로필 미존재 시 `.codex/deep-work-profile.yaml`에 v2 형식으로 저장.
+프로필 미존재 시 `.codex/deep-work-profile.yaml`에 **v3 형식**으로 저장 (v2 형식 사용 금지). §1-3-2의 migration 단계가 `not-found-created-v3` 응답 시 이미 v3 파일이 생성되므로, 본 단계에서는 §1-4-3 ask 결과를 반영하여 해당 프리셋 defaults를 업데이트한다.
 
 ## 1-11. 세션 확인 표시
 
@@ -218,11 +437,10 @@ Brainstorm skill의 Section 3 완료 메시지 출력 후:
 
 ### Exit Gate (Phase 0 → Phase 1)
 
-번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
-
-1. "다음 phase로 진행" — 즉시 Phase 1 Research를 시작합니다
-2. "이 phase 재실행/수정" — Brainstorm을 재실행하거나 brainstorm.md를 편집합니다
-3. "일시정지" — 세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다
+numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: Phase 0 (Brainstorm) 완료. 어떻게 진행할까요?
+  1. label: "다음 phase로 진행", description: "즉시 Phase 1 Research를 시작합니다"
+  2. label: "이 phase 재실행/수정", description: "Brainstorm을 재실행하거나 brainstorm.md를 편집합니다"
+  3. label: "일시정지", description: "세션 유지. /deep-resume으로 복귀 시 이 Exit Gate로 돌아옵니다"
 
 분기:
 - option 1 → **즉시 `current_phase: research` 설정** (F1 Option A) → **§3-2 Research로 dispatch** (§3-2 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill을 직접 호출하지 않는다 — §3-2 본문과 중복 실행 방지 (v6.3.1 NO1 fix).
@@ -236,7 +454,7 @@ Brainstorm skill의 Section 3 완료 메시지 출력 후:
 **Resume 분기 (v6.3.1 F1 + NW5 integrity check)**: state의 `research_approved: true`가 이미 있고 `$ARGUMENTS`에 `--force-rerun`이 없으면 paused-after-approval 복귀 후보 경로이다. 단, **approval integrity check**가 추가로 필요:
 
 1. `research_approved_hash` (state) 와 현재 `$WORK_DIR/research.md`의 sha256을 비교:
-   - run `shasum -a 256 "$WORK_DIR/research.md" | awk '{print $1}'` (or `sha256sum` on Linux)
+   - `run shell command "shasum -a 256 \"$WORK_DIR/research.md\" | awk '{print $1}'"` (or `sha256sum` on Linux)
    - 해시 일치 → approval은 유효. Skill 호출과 review+approval을 **건너뛰고** 바로 아래 Exit Gate 실행.
    - 해시 불일치 → **out-of-band 편집 감지 → data preservation + in-place review** (v6.3.1 NO3 fix + NP3 collision fix):
      1. 현재 `$WORK_DIR/research.md`를 `$WORK_DIR/research.v{iteration_count+1}-edit.md`로 복사 (편집 내용 백업). **`-edit` 접미사** 사용 — deep-research skill의 기존 `research.v{iteration_count}.md` backup과 파일명 충돌 방지 (NP3).
@@ -270,17 +488,16 @@ Phase Skill 완료 후:
 문서 최종 승인 후 → State 부분 업데이트:
 - `research_approved: true` (Resume fast-path baseline — v6.3.1 NC1 fix)
 - `research_approved_at`: current ISO timestamp
-- `research_approved_hash`: `shasum -a 256 "$WORK_DIR/research.md" | awk '{print $1}'` 결과 (v6.3.1 NW5 integrity snapshot)
+- `research_approved_hash`: `run shell command "shasum -a 256 \"$WORK_DIR/research.md\" | awk '{print $1}'"` 결과 (v6.3.1 NW5 integrity snapshot)
 
 → 아래 Exit Gate 실행.
 
 ### Exit Gate (Phase 1 → Phase 2)
 
-번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
-
-1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
-2. "이 phase 재실행/수정"
-3. "일시정지"
+numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: Phase 1 (Research) 완료. 어떻게 진행할까요?
+  1. "다음 phase로 진행" — 즉시 Phase 2 Plan 시작
+  2. "이 phase 재실행/수정"
+  3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: plan` 설정** → **§3-3 Plan으로 dispatch** (§3-3 body가 Resume check + Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -294,7 +511,7 @@ Phase Skill 완료 후:
 **Resume 분기 (v6.3.1 F1 + NW5 integrity check)**: state의 `plan_approved: true`가 이미 있고 `$ARGUMENTS`에 `--force-rerun`이 없으면 paused-after-approval 복귀 후보 경로이다. 단, **approval integrity check**가 추가로 필요:
 
 1. `plan_approved_hash` (state) 와 현재 `$WORK_DIR/plan.md`의 sha256을 비교:
-   - run `shasum -a 256 "$WORK_DIR/plan.md" | awk '{print $1}'` (or `sha256sum`)
+   - `run shell command "shasum -a 256 \"$WORK_DIR/plan.md\" | awk '{print $1}'"` (or `sha256sum`)
    - 해시 일치 → approval 유효. Skill 호출과 review+approval을 **건너뛰고** 바로 아래 Exit Gate 실행.
    - 해시 불일치 → **out-of-band 편집 감지 → data preservation + in-place review** (v6.3.1 NO3 fix + NP3 collision fix):
      1. 현재 `$WORK_DIR/plan.md`를 `$WORK_DIR/plan.v{iteration_count+1}-edit.md`로 복사. **`-edit` 접미사** 사용 — deep-plan skill의 기존 `plan.v{iteration_count}.md` backup(Pre-steps Backup 단계)과 파일명 충돌 방지 (NP3).
@@ -319,16 +536,15 @@ the deep-plan skill
 문서 최종 승인 후 → State 부분 업데이트:
 - `plan_approved: true`
 - `plan_approved_at`: current ISO timestamp (drift baseline)
-- `plan_approved_hash`: `shasum -a 256 "$WORK_DIR/plan.md" | awk '{print $1}'` 결과 (v6.3.1 NW5 integrity snapshot)
+- `plan_approved_hash`: `run shell command "shasum -a 256 \"$WORK_DIR/plan.md\" | awk '{print $1}'"` 결과 (v6.3.1 NW5 integrity snapshot)
 - **`current_phase`는 이 시점에서는 변경하지 않는다.** Exit Gate "진행" 시에 `implement`로 전환.
 
 ### Exit Gate (Phase 2 → Phase 3)
 
-번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
-
-1. "다음 phase로 진행"
-2. "이 phase 재실행/수정"
-3. "일시정지"
+numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: Phase 2 (Plan) 완료. 어떻게 진행할까요?
+  1. "다음 phase로 진행"
+  2. "이 phase 재실행/수정"
+  3. "일시정지"
 
 분기:
 - option 1 → **즉시 `current_phase: implement` 설정** → **§3-4 Implement로 dispatch** (§3-4 body가 Skill 호출 담당). 본 branch에서 Skill 직접 호출하지 않음 (NO1 fix).
@@ -345,10 +561,9 @@ Implement skill의 Section 3 완료 후:
 
 ### Exit Gate (Phase 3 → Phase 4)
 
-번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
-
-1. "다음 phase로 진행"
-2. "이 phase 재실행/수정"
+numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: Phase 3 (Implement) 완료. 어떻게 진행할까요?
+  1. "다음 phase로 진행"
+  2. "이 phase 재실행/수정"
   3. "일시정지"
 
 분기:
@@ -374,11 +589,10 @@ the deep-test skill
 
 `$ARGUMENTS`에 `--skip-integrate` 포함 시 Exit Gate 생략하고 바로 §3-6 Finish 진입.
 
-번호형 사용자 확인. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다:
-
-1. "다음 phase로 진행" — Phase 5 Integrate
-2. "Integrate 건너뛰고 Finish"
-3. "Test 재실행"
+numbered-choice prompt. 사용자에게 다음 번호 중 하나로 응답하도록 묻는다: Phase 4 (Test) 완료. 어떻게 진행할까요?
+  1. "다음 phase로 진행" — Phase 5 Integrate
+  2. "Integrate 건너뛰고 Finish"
+  3. "Test 재실행"
   4. "일시정지"
 
 분기:
